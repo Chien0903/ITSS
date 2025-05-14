@@ -96,8 +96,12 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'shoping_web',
+        'USER': 'shoping_web',
+        'PASSWORD': 'nsfKTpUVrRfDRcRaGTzVRFD7wx30hMRk',
+        'HOST': 'dpg-d0i8bpidbo4c73dkf8b0-a.oregon-postgres.render.com',
+        'PORT': '5432',  # Cổng mặc định của PostgreSQL
     }
 }
 
@@ -145,3 +149,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
