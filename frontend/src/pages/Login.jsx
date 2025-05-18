@@ -1,32 +1,60 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../api";
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+  const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // 👉 Giả lập đăng nhập thành công
-    localStorage.setItem("isLoggedIn", "true");
-    if (onLogin) onLogin(); // Gọi callback cập nhật trạng thái từ App.jsx
-    navigate("/"); // Chuyển hướng về trang chủ
+    try {
+      const response = await api.post("/api/login/", formData);
+      if (response.status === 200) {
+        // Lưu thông tin người dùng vào localStorage
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+
+        if (onLogin) onLogin(); // Gọi callback cập nhật trạng thái từ App.jsx
+        navigate("/"); // Chuyển hướng về trang chủ
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Có lỗi xảy ra khi đăng nhập");
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center">Đăng Nhập</h2>
+        {error && <div className="text-red-500 text-center mb-4">{error}</div>}
         <form onSubmit={handleLogin} className="space-y-4">
           <input
             type="email"
+            name="email"
             placeholder="Email"
             className="w-full px-4 py-2 border rounded"
+            value={formData.email}
+            onChange={handleChange}
             required
           />
           <input
             type="password"
+            name="password"
             placeholder="Mật khẩu"
             className="w-full px-4 py-2 border rounded"
+            value={formData.password}
+            onChange={handleChange}
             required
           />
           <button
