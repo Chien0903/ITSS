@@ -6,7 +6,7 @@ const Login = ({ onLogin }) => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    // 👉 Giả lập đăng nhập thành công
+    //Giả lập đăng nhập thành công
     localStorage.setItem("isLoggedIn", "true");
     if (onLogin) onLogin(); // Gọi callback cập nhật trạng thái từ App.jsx
     navigate("/select-group"); // Chuyển hướng đến trang chọn nhóm
