@@ -59,9 +59,12 @@ const App = () => {
     );
   }
 
+  const hideSidebarRoutes = ["/select-group", "/create-group"];
+  const shouldShowSidebar = !hideSidebarRoutes.includes(location.pathname);
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
+      {shouldShowSidebar && <Sidebar />}
       <div className="flex-1 p-4">
         <div className="flex justify-end gap-4 mb-4">
           <button
