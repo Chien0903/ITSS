@@ -9,7 +9,7 @@ const Login = ({ onLogin }) => {
     // 👉 Giả lập đăng nhập thành công
     localStorage.setItem("isLoggedIn", "true");
     if (onLogin) onLogin(); // Gọi callback cập nhật trạng thái từ App.jsx
-    navigate("/"); // Chuyển hướng về trang chủ
+    navigate("/select-group"); // Chuyển hướng đến trang chọn nhóm
   };
 
   return (
