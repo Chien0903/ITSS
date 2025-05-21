@@ -17,7 +17,11 @@ import Recipes from "./pages/recipes";
 import Plans from "./pages/plan";
 import Statistics from "./pages/statistics";
 import Profile from "./pages/Profile";
+
+import SelectGroup from "./pages/SelectGroup";
+import CreateGroup from "./pages/CreateGroup";
 import Logout from "./components/Logout";
+
 
 const Empty = ({ name }) => (
   <div className="p-4 text-xl font-medium">Trang: {name}</div>
@@ -65,6 +69,17 @@ const App = () => {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <Routes>
+          <Route
+            path="/login"
+            element={<Login onLogin={() => setIsLoggedIn(true)} />}
+          />
+          <Route path="/register" element={<Register />} />
+          <Route path="/select-group" element={<SelectGroup />} />{" "}
+          {/* 👈 THÊM DÒNG NÀY */}
+          <Route
+            path="*"
+            element={<Login onLogin={() => setIsLoggedIn(true)} />}
+          />
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<Login onLogin={handleLogin} />} />
@@ -83,6 +98,8 @@ const App = () => {
 
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/select-group" element={<SelectGroup />} />
+          <Route path="/create-group" element={<CreateGroup />} />
           <Route path="/shopping" element={<ShoppingList />} />
           <Route path="/store" element={<Store />} />
           <Route path="/fridge" element={<Fridge />} />
