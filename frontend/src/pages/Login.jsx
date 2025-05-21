@@ -19,6 +19,12 @@ const Login = ({ onLogin }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    // 👉 Giả lập đăng nhập thành công
+    localStorage.setItem("isLoggedIn", "true");
+    if (onLogin) onLogin(); // Gọi callback cập nhật trạng thái từ App.jsx
+    navigate("/select-group"); // Chuyển hướng đến trang chọn nhóm
+
     try {
       const response = await api.post("/api/login/", formData);
       if (response.status === 200) {
