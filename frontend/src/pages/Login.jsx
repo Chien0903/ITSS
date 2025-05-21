@@ -19,6 +19,7 @@ const Login = ({ onLogin }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    //Giả lập đăng nhập thành công
 
     // 👉 Giả lập đăng nhập thành công
     localStorage.setItem("isLoggedIn", "true");
