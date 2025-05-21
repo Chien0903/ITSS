@@ -17,8 +17,11 @@ import Recipes from "./pages/recipes";
 import Plans from "./pages/plan";
 import Statistics from "./pages/statistics";
 import Profile from "./pages/Profile";
+
 import SelectGroup from "./pages/SelectGroup";
 import CreateGroup from "./pages/CreateGroup";
+import Logout from "./components/Logout";
+
 
 const Empty = ({ name }) => (
   <div className="p-4 text-xl font-medium">Trang: {name}</div>
@@ -27,9 +30,32 @@ const Empty = ({ name }) => (
 const App = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem("isLoggedIn") === "true";
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Kiểm tra trạng thái đăng nhập khi component được mount
+    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    const userData = localStorage.getItem("user");
+
+    setIsLoggedIn(loggedIn);
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUser(null);
+  };
 
   // Nếu chưa đăng nhập và cố gắng truy cập các trang khác login/register => redirect về /login
   useEffect(() => {
@@ -54,6 +80,9 @@ const App = () => {
             path="*"
             element={<Login onLogin={() => setIsLoggedIn(true)} />}
           />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="*" element={<Login onLogin={handleLogin} />} />
         </Routes>
       </div>
     );
@@ -67,16 +96,7 @@ const App = () => {
       {shouldShowSidebar && <Sidebar />}
       <div className="flex-1 p-4">
         <div className="flex justify-end gap-4 mb-4">
-          <button
-            onClick={() => {
-              localStorage.removeItem("isLoggedIn");
-              setIsLoggedIn(false);
-              navigate("/login");
-            }}
-            className="text-sm text-red-600 font-medium hover:underline"
-          >
-            Đăng xuất
-          </button>
+          <Logout onLogout={handleLogout} />
         </div>
 
         <Routes>
