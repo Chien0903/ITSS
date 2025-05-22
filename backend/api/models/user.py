@@ -1,15 +1,13 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
-class User(models.Model):
-    class Role(models.TextChoices):
-        ADMIN = 'admin', 'Admin'
-        USER = 'user', 'User'
-    
-    userID = models.AutoField(primary_key=True)
-    email = models.EmailField(max_length=255, unique=True)
-    name = models.CharField(max_length=255)
-    password = models.CharField(max_length=255)
-    role = models.CharField(max_length=10, choices=Role.choices)
+class User(AbstractUser):
+    email = models.EmailField(unique=True)
+    name = models.CharField(max_length=255, blank=True)
+    role = models.CharField(max_length=10, choices=[('admin', 'Admin'), ('user', 'User')], default='user')
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
 
     def __str__(self):
-        return self.name
+        return self.email

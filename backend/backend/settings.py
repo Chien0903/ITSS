@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
     'corsheaders',
     'api',
 ]
@@ -96,10 +97,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'shoping_web',
-        'USER': 'shoping_web',
-        'PASSWORD': 'nsfKTpUVrRfDRcRaGTzVRFD7wx30hMRk',
-        'HOST': 'dpg-d0i8bpidbo4c73dkf8b0-a.oregon-postgres.render.com',
+        'NAME': 'smart_market',
+        'USER': 'smart_market',
+        'PASSWORD': 'Je0OW9iS2LcBuVBDch7TIDl1Hpg4TRHT',
+        'HOST': 'dpg-d0nkberipnbc7393akr0-a.oregon-postgres.render.com',
         'PORT': '5432',  # Cổng mặc định của PostgreSQL
     }
 }
@@ -148,4 +149,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+AUTH_USER_MODEL = 'api.User'
 
