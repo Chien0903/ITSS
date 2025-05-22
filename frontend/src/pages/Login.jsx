@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 
 const Login = ({ onLogin }) => {
   const navigate = useNavigate();
@@ -18,22 +19,18 @@ const Login = ({ onLogin }) => {
   };
 
   const handleLogin = async (e) => {
+    
     e.preventDefault();
-    //Giả lập đăng nhập thành công
-
-    // 👉 Giả lập đăng nhập thành công
-    localStorage.setItem("isLoggedIn", "true");
-    if (onLogin) onLogin(); // Gọi callback cập nhật trạng thái từ App.jsx
-    navigate("/select-group"); // Chuyển hướng đến trang chọn nhóm
 
     try {
-      const response = await api.post("/api/login/", formData);
+      const response = await api.post("/api/token/", formData);
       if (response.status === 200) {
         // Lưu thông tin người dùng vào localStorage
         localStorage.setItem("user", JSON.stringify(response.data.user));
-
+        localStorage.setItem(ACCESS_TOKEN, response.data.access);
+        localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
         if (onLogin) onLogin(); // Gọi callback cập nhật trạng thái từ App.jsx
-        navigate("/"); // Chuyển hướng về trang chủ
+        navigate("/select-group"); // Chuyển hướng về trang chủ
       }
     } catch (err) {
       setError(err.response?.data?.message || "Có lỗi xảy ra khi đăng nhập");

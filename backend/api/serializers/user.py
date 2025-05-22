@@ -1,26 +1,55 @@
 from rest_framework import serializers
 from ..models.user import User
+from django.core.exceptions import ValidationError
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-class UserSerializer(serializers.ModelSerializer):
+def validate_email(value):
+    if User.objects.filter(email=value).exists():
+        raise serializers.ValidationError("Email này đã được sử dụng")
+    return value
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ['userID', 'email', 'name', 'password', 'role']
-        extra_kwargs = {
-            'password': {'write_only': True},
-            'userID': {'read_only': True},
-            'role': {'read_only': True}
-        }
+        fields = ['email', 'name', 'password']
 
     def create(self, validated_data):
-        user = User.objects.create(
-            email=validated_data['email'],
-            name=validated_data['name'],
-            password=validated_data['password'],  # Trong thực tế nên mã hóa password
-            role='user'  # Mặc định role là user khi đăng ký
-        )
+        password = validated_data.pop('password')
+        validated_data['username'] = validated_data['email']  # nếu bạn cần field username
+        user = User(**validated_data)
+        user.set_password(password)  # ✅ hash password
+        user.save()
         return user
 
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email này đã được sử dụng")
-        return value 
+
+class LoginSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['email', 'password']
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError({'email': 'Email không tồn tại.'})
+
+        # So sánh plain text
+        if user.password != password:
+            raise serializers.ValidationError({'password': 'Mật khẩu không đúng.'})
+
+        # Trick cho SimpleJWT: truyền username = email
+        data = super().validate({'username': email, 'password': password})
+        return data
+
+
+
+
+
+

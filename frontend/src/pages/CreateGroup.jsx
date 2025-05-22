@@ -1,50 +1,67 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
-// Danh sách giả lập người dùng
-const dummyUsers = [
-  { id: 1, name: "Nguyễn Văn A" },
-  { id: 2, name: "Trần Thị B" },
-  { id: 3, name: "Lê Văn C" },
-  { id: 4, name: "Phạm Thị D" },
-  { id: 5, name: "Đỗ Văn E" },
-];
+import api from "../api";
 
 const CreateGroup = () => {
   const [groupName, setGroupName] = useState("");
+  const [description, setDescription] = useState("");
   const [searchText, setSearchText] = useState("");
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get("/api/users/");
+      setUsers(response.data);
+    } catch (err) {
+      setError("Không thể tải danh sách người dùng");
+    }
+  };
+
   const handleAddUser = (user) => {
-    if (!selectedUsers.some((u) => u.id === user.id)) {
+    if (!selectedUsers.some((u) => u.userID === user.userID)) {
       setSelectedUsers([...selectedUsers, user]);
     }
   };
 
   const handleRemoveUser = (userId) => {
-    setSelectedUsers(selectedUsers.filter((u) => u.id !== userId));
+    setSelectedUsers(selectedUsers.filter((u) => u.userID !== userId));
   };
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     if (!groupName.trim()) {
-      alert("Vui lòng nhập tên nhóm.");
+      setError("Vui lòng nhập tên nhóm");
       return;
     }
 
-    const groupId = `${groupName
-      .toLowerCase()
-      .replace(/\s+/g, "-")}-${Date.now()}`;
-    localStorage.setItem("selectedGroup", groupId);
+    setLoading(true);
+    try {
+      const response = await api.post("/api/groups/create/", {
+        groupName,
+        description,
+        members: selectedUsers.map((user) => user.userID),
+      });
 
-    // 👉 Có thể lưu thông tin nhóm vào localStorage hoặc gửi API tại đây
-    console.log("Tạo nhóm:", groupName, selectedUsers);
-
-    navigate("/"); // Về Dashboard sau khi tạo nhóm
+      localStorage.setItem("selectedGroup", response.data.groupID);
+      navigate("/select-group", {
+        state: { newGroupId: response.data.groupID },
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || "Không thể tạo nhóm");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const filteredUsers = dummyUsers.filter((user) =>
+  const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
@@ -53,66 +70,105 @@ const CreateGroup = () => {
       <div className="bg-white p-8 rounded shadow-md w-full max-w-xl">
         <h2 className="text-2xl font-bold mb-6 text-center">Tạo Nhóm Mới</h2>
 
-        <input
-          type="text"
-          placeholder="Tên nhóm"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-          className="w-full border rounded px-4 py-2 mb-4"
-        />
+        {error && <div className="text-red-500 text-center mb-4">{error}</div>}
 
-        <input
-          type="text"
-          placeholder="Tìm người dùng để thêm"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="w-full border rounded px-4 py-2 mb-4"
-        />
-
-        <div className="mb-4">
-          <h3 className="font-semibold mb-2">Người dùng gợi ý:</h3>
-          <div className="max-h-32 overflow-y-auto space-y-1">
-            {filteredUsers.map((user) => (
-              <div
-                key={user.id}
-                className="flex justify-between items-center px-3 py-1 border rounded cursor-pointer hover:bg-gray-50"
-                onClick={() => handleAddUser(user)}
-              >
-                <span>{user.name}</span>
-                <button className="text-sm text-green-600">+ Thêm</button>
-              </div>
-            ))}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tên nhóm
+            </label>
+            <input
+              type="text"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="w-full border rounded px-4 py-2"
+              placeholder="Nhập tên nhóm"
+            />
           </div>
-        </div>
 
-        {selectedUsers.length > 0 && (
-          <div className="mb-6">
-            <h3 className="font-semibold mb-2">Đã chọn:</h3>
-            <ul className="space-y-1">
-              {selectedUsers.map((user) => (
-                <li
-                  key={user.id}
-                  className="flex justify-between items-center px-3 py-1 border rounded"
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Mô tả
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full border rounded px-4 py-2"
+              placeholder="Nhập mô tả nhóm"
+              rows="3"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tìm thành viên
+            </label>
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full border rounded px-4 py-2"
+              placeholder="Tìm kiếm người dùng"
+            />
+          </div>
+
+          {searchText && (
+            <div className="max-h-40 overflow-y-auto border rounded">
+              {filteredUsers.map((user) => (
+                <div
+                  key={user.userID}
+                  className="flex justify-between items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleAddUser(user)}
                 >
-                  <span>{user.name}</span>
-                  <button
-                    onClick={() => handleRemoveUser(user.id)}
-                    className="text-sm text-red-500"
-                  >
-                    Xóa
-                  </button>
-                </li>
+                  <div>
+                    <div className="font-medium">{user.name}</div>
+                    <div className="text-sm text-gray-500">{user.email}</div>
+                  </div>
+                  <button className="text-green-600">+ Thêm</button>
+                </div>
               ))}
-            </ul>
-          </div>
-        )}
+            </div>
+          )}
 
-        <button
-          onClick={handleCreateGroup}
-          className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
-        >
-          Tạo Nhóm
-        </button>
+          {selectedUsers.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Thành viên đã chọn
+              </label>
+              <div className="space-y-2">
+                {selectedUsers.map((user) => (
+                  <div
+                    key={user.userID}
+                    className="flex justify-between items-center px-4 py-2 border rounded"
+                  >
+                    <div>
+                      <div className="font-medium">{user.name}</div>
+                      <div className="text-sm text-gray-500">{user.email}</div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveUser(user.userID)}
+                      className="text-red-600"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleCreateGroup}
+            disabled={loading}
+            className={`w-full py-2 rounded text-white font-medium ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-500 hover:bg-green-600"
+            }`}
+          >
+            {loading ? "Đang tạo..." : "Tạo Nhóm"}
+          </button>
+        </div>
       </div>
     </div>
   );
