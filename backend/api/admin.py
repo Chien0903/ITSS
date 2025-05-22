@@ -16,14 +16,15 @@ from .models.in_model import In
 # Đăng ký User model
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('userID', 'email', 'name', 'role')
-    search_fields = ('email', 'name')
+    list_display = ('id', 'email', 'username', 'name', 'role')
+    search_fields = ('email', 'name', 'username')
 
 # Đăng ký Group model
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ('groupID', 'groupName', 'user')
+    list_display = ('groupID', 'groupName', 'createdBy', 'createdAt')
     search_fields = ('groupName',)
+    list_filter = ('createdAt',)
 
 # Đăng ký Fridge model
 @admin.register(Fridge)

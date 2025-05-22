@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -23,6 +24,10 @@ const Register = () => {
     try {
       const response = await api.post("/api/register/", formData);
       if (response.status === 201) {
+        if (response.data.access && response.data.refresh) {
+          localStorage.setItem(ACCESS_TOKEN, response.data.access);
+          localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
+        }
         alert("Đăng ký thành công!");
         navigate("/login");
       }
