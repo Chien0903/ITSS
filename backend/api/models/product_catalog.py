@@ -10,7 +10,7 @@ class ProductCatalog(models.Model):
     shelfLife = models.IntegerField()  # Shelf life in days
     isCustom = models.BooleanField(default=False)
     category = models.ForeignKey(Categories, on_delete=models.SET_NULL, null=True, blank=True)
-    image = models.ImageField(upload_to='products/', null=True, blank=True)
+    image = models.URLField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)

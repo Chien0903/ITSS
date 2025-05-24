@@ -4,6 +4,8 @@ from rest_framework import status
 from rest_framework.parsers import MultiPartParser, FormParser
 from ..models.product_catalog import ProductCatalog
 from ..serializers.product_catalog_serializer import ProductCatalogSerializer
+import cloudinary.uploader
+
 
 class ProductCatalogView(APIView):
     parser_classes = (MultiPartParser, FormParser)
@@ -18,17 +20,16 @@ class ProductCatalogView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        image = request.FILES.get('image')
+        if image:
+            result = cloudinary.uploader.upload(image)
+            request.data['image'] = result['secure_url']
+
         serializer = ProductCatalogSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response({
-                'message': 'Sản phẩm đã được thêm thành công',
-                'data': serializer.data
-            }, status=status.HTTP_201_CREATED)
-        return Response({
-            'message': 'Có lỗi xảy ra khi thêm sản phẩm',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+            product = serializer.save()
+            return Response({'message': 'Thành công', 'data': ProductCatalogSerializer(product).data}, status=201)
+        return Response(serializer.errors, status=400)
 
 class ProductCatalogDetailView(APIView):
     parser_classes = (MultiPartParser, FormParser)
