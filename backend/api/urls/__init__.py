@@ -9,9 +9,11 @@ from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
 from ..views.shopping_list import ShoppingListView
+from ..views.shopping_list import AddToListView
 
 router = DefaultRouter()
 router.register(r'shopping-list', ShoppingListView, basename='shopping-list')
+router.register(r'add-to-list', AddToListView, basename="add-to-list")
 
 urlpatterns = [
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
