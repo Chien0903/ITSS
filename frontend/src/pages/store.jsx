@@ -10,6 +10,7 @@ const Store = () => {
   // State cho danh sách sản phẩm
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState({}); // Track loading state cho từng sản phẩm
 
   // State cho form tạo danh mục
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -120,22 +121,28 @@ const Store = () => {
     }
   };
 
-  // Thêm sản phẩm vào giỏ hàng
-  const handleAddToCart = (product) => {
-    const cart = JSON.parse(localStorage.getItem("cart")) || [];
-    const index = cart.findIndex((item) => item.id === product.productID);
-    if (index !== -1) {
-      cart[index].quantity += 1;
-    } else {
-      cart.push({
-        id: product.productID,
-        name: product.productName,
-        price: Number(product.price),
+  // Thêm sản phẩm vào giỏ hàng qua API
+  const handleAddToCart = async (product) => {
+    const productId = product.productID;
+    setAddingToCart((prev) => ({ ...prev, [productId]: true }));
+
+    try {
+      await api.post("/api/cart/update/", {
+        product_id: productId,
         quantity: 1,
       });
+
+      // Dispatch event để Header cập nhật cart count
+      window.dispatchEvent(new Event("cartUpdated"));
+
+      // Có thể thêm thông báo thành công
+      // alert("Đã thêm sản phẩm vào giỏ hàng!");
+    } catch (error) {
+      console.error("Lỗi khi thêm vào giỏ hàng:", error);
+      alert("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại!");
+    } finally {
+      setAddingToCart((prev) => ({ ...prev, [productId]: false }));
     }
-    localStorage.setItem("cart", JSON.stringify(cart));
-    // Có thể thêm thông báo thành công ở đây nếu muốn
   };
 
   return (
@@ -298,11 +305,14 @@ const Store = () => {
                 <span className="text-sm text-gray-500">{product.unit}</span>
               </div>
               <button
-                className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white text-sm py-2 rounded flex items-center justify-center gap-2"
+                className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white text-sm py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => handleAddToCart(product)}
+                disabled={addingToCart[product.productID]}
               >
                 <ShoppingCart size={16} />
-                Thêm vào giỏ
+                {addingToCart[product.productID]
+                  ? "Đang thêm..."
+                  : "Thêm vào giỏ"}
               </button>
             </div>
           ))}
