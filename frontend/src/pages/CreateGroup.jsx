@@ -27,13 +27,12 @@ const CreateGroup = () => {
   };
 
   const handleAddUser = (user) => {
-    if (!selectedUsers.some((u) => u.userID === user.userID)) {
+    if (!selectedUsers.some((u) => u.id === user.id)) {
       setSelectedUsers([...selectedUsers, user]);
     }
   };
-
-  const handleRemoveUser = (userId) => {
-    setSelectedUsers(selectedUsers.filter((u) => u.userID !== userId));
+  const handleRemoveUser = (id) => {
+    setSelectedUsers(selectedUsers.filter((u) => u.id !== id));
   };
 
   const handleCreateGroup = async () => {
@@ -47,7 +46,7 @@ const CreateGroup = () => {
       const response = await api.post("/api/groups/create/", {
         groupName,
         description,
-        members: selectedUsers.map((user) => user.userID),
+        members: selectedUsers.map((user) => user.id),
       });
 
       localStorage.setItem("selectedGroup", response.data.groupID);
@@ -116,7 +115,7 @@ const CreateGroup = () => {
             <div className="max-h-40 overflow-y-auto border rounded">
               {filteredUsers.map((user) => (
                 <div
-                  key={user.userID}
+                  key={user.id}
                   className="flex justify-between items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
                   onClick={() => handleAddUser(user)}
                 >
@@ -138,7 +137,7 @@ const CreateGroup = () => {
               <div className="space-y-2">
                 {selectedUsers.map((user) => (
                   <div
-                    key={user.userID}
+                    key={user.id}
                     className="flex justify-between items-center px-4 py-2 border rounded"
                   >
                     <div>
@@ -146,7 +145,7 @@ const CreateGroup = () => {
                       <div className="text-sm text-gray-500">{user.email}</div>
                     </div>
                     <button
-                      onClick={() => handleRemoveUser(user.userID)}
+                      onClick={() => handleRemoveUser(user.id)}
                       className="text-red-600"
                     >
                       Xóa

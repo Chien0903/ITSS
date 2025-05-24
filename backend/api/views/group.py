@@ -34,7 +34,7 @@ class CreateGroupView(APIView):
             member_ids = request.data.get('members', [])
             for member_id in member_ids:
                 try:
-                    user = User.objects.get(userID=member_id)
+                    user = User.objects.get(id=member_id)
                     In.objects.create(user=user, group=group)
                 except User.DoesNotExist:
                     continue

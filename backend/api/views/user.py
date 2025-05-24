@@ -1,13 +1,14 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.views import TokenObtainPairView as SimpleJWTTokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from ..models.user import User
 from ..serializers.user import RegisterSerializer, CustomTokenObtainPairSerializer
+from ..serializers.group import UserSerializer
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -30,8 +31,6 @@ class RegisterView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
-
-
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'
 
@@ -49,8 +48,26 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Trick cho SimpleJWT: truyền username = email
         data = super().validate({self.username_field: email, 'password': password})
+        
+        # Thêm thông tin user vào response
+        data['user'] = {
+            'id': user.id,
+            'email': user.email,
+            'name': user.name,
+            'role': user.role,
+            'username': user.username
+        }
+        
         return data
 
 
 class CustomTokenObtainPairView(SimpleJWTTokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+class UserListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
