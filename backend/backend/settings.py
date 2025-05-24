@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'api',
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
@@ -97,10 +98,10 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'smart_market',
+        'NAME': 'smart_market_t7rf',
         'USER': 'smart_market',
-        'PASSWORD': 'Je0OW9iS2LcBuVBDch7TIDl1Hpg4TRHT',
-        'HOST': 'dpg-d0nkberipnbc7393akr0-a.oregon-postgres.render.com',
+        'PASSWORD': 'OBRDv7kRHPU0cZMF6mbDwOPVV5RvwtxU',
+        'HOST': 'dpg-d0oognuuk2gs738t7ing-a.oregon-postgres.render.com',
         'PORT': '5432',  # Cổng mặc định của PostgreSQL
     }
 }
@@ -155,3 +156,15 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 AUTH_USER_MODEL = 'api.User'
 
+
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+cloudinary.config(
+    cloud_name='dzojcrdto',
+    api_key='686734241961229',
+    api_secret='_O6tJEECfth3YJGWCZDLWibU5O8',
+)
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
