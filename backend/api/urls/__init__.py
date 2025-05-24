@@ -3,6 +3,7 @@ from ..views.product_catalog_view import ProductCatalogView, ProductCatalogDetai
 from ..views.categories_view import CategoriesView, CategoriesDetailView
 from ..views.user import RegisterView, CustomTokenObtainPairView, UserListView
 from ..views.group import GroupListView, CreateGroupView, JoinGroupView
+from ..views.cart import CartView, AddToCartView, RemoveFromCartView
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -22,4 +23,9 @@ urlpatterns = [
     path('groups/create/', CreateGroupView.as_view(), name='group-create'),
     path('groups/<int:group_id>/join/', JoinGroupView.as_view(), name='group-join'),
     path('users/', UserListView.as_view(), name='user-list'),
+    
+    #Cart
+    path('cart/', CartView.as_view(), name='cart'),
+    path('cart/update/', AddToCartView.as_view(), name='cart-add'),
+    path('cart/remove/', RemoveFromCartView.as_view(), name='cart-remove'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
