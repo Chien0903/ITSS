@@ -13,6 +13,8 @@ import Statistics from "./pages/statistics";
 import Profile from "./pages/Profile";
 import SelectGroup from "./pages/SelectGroup";
 import CreateGroup from "./pages/CreateGroup";
+import AddProduct from "./pages/AddProduct";
+import Cart from "./pages/Cart";
 
 function Logout() {
   localStorage.clear();
@@ -36,6 +38,8 @@ function App() {
       <Route path="/select-group" element={<SelectGroup />} />
       <Route path="/create-group" element={<CreateGroup />} />
       <Route path="/logout" element={<Logout />} />
+      <Route path="/add-product" element={<AddProduct />} />
+      <Route path="/cart" element={<Cart />} />
     </Routes>
   );
 }

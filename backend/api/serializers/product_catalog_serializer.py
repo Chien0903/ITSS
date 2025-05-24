@@ -6,9 +6,6 @@ class ProductCatalogSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ProductCatalog
-        fields = [
-            'productID', 'productName', 'price', 'unit', 
-            'shelfLife', 'isCustom', 'category', 'category_name',
-            'image', 'description', 'created_at', 'updated_at'
-        ]
+        fields = '__all__'
+           
         read_only_fields = ['productID', 'created_at', 'updated_at'] 
