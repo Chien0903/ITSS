@@ -1,28 +1,50 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../api";
+import { ACCESS_TOKEN } from "../../constants";
 
 const Header = () => {
   const navigate = useNavigate();
-  const isLoggedIn = Boolean(localStorage.getItem("access"));
+  const isLoggedIn = Boolean(localStorage.getItem(ACCESS_TOKEN));
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    // Hàm cập nhật số lượng sản phẩm trong giỏ
-    const updateCartCount = () => {
-      const cart = JSON.parse(localStorage.getItem("cart")) || [];
-      const total = cart.reduce((sum, item) => sum + item.quantity, 0);
-      setCartCount(total);
+    // Hàm cập nhật số lượng sản phẩm trong giỏ từ API
+    const updateCartCount = async () => {
+      const token = localStorage.getItem(ACCESS_TOKEN);
+      if (!token) {
+        setCartCount(0);
+        return;
+      }
+
+      try {
+        const response = await api.get("/api/cart/");
+        const data = response.data;
+        const total = (data.items || []).reduce(
+          (sum, item) => sum + (item.quantity || 0),
+          0
+        );
+        setCartCount(total);
+      } catch (error) {
+        console.error("Lỗi khi lấy giỏ hàng:", error);
+        setCartCount(0);
+      }
     };
+
     updateCartCount();
-    // Lắng nghe sự thay đổi của localStorage (khi ở nhiều tab)
-    window.addEventListener("storage", updateCartCount);
+
     // Lắng nghe sự thay đổi khi quay lại trang
     window.addEventListener("focus", updateCartCount);
+
+    // Tạo event listener tùy chỉnh để cập nhật cart count
+    const handleCartUpdate = () => updateCartCount();
+    window.addEventListener("cartUpdated", handleCartUpdate);
+
     return () => {
-      window.removeEventListener("storage", updateCartCount);
       window.removeEventListener("focus", updateCartCount);
+      window.removeEventListener("cartUpdated", handleCartUpdate);
     };
-  }, []);
+  }, [isLoggedIn]);
 
   const handleLogin = () => {
     navigate("/login");
@@ -30,6 +52,7 @@ const Header = () => {
 
   const handleLogout = () => {
     localStorage.clear();
+    setCartCount(0);
     navigate("/login");
   };
 
