@@ -6,6 +6,7 @@ class ProductCatalog(models.Model):
     productID = models.AutoField(primary_key=True)
     productName = models.CharField(max_length=255)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)  
     unit = models.CharField(max_length=50)
     shelfLife = models.IntegerField()  # Shelf life in days
     isCustom = models.BooleanField(default=False)

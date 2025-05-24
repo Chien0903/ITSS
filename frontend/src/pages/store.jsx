@@ -1,5 +1,7 @@
+// Store.jsx - đã cập nhật thêm 2 nút + routing + responsive cho admin
+
 import React, { useState, useEffect } from "react";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Plus } from "lucide-react";
 import api from "../api";
 import { Link } from "react-router-dom";
 
@@ -7,121 +9,32 @@ const Store = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const isAdmin = user && user.role === "admin";
 
-  // State cho danh sách sản phẩm
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [addingToCart, setAddingToCart] = useState({}); // Track loading state cho từng sản phẩm
-
-  // State cho form tạo danh mục
-  const [showCategoryForm, setShowCategoryForm] = useState(false);
-  const [categoryName, setCategoryName] = useState("");
-  const [categoryMsg, setCategoryMsg] = useState("");
-  const [categoryLoading, setCategoryLoading] = useState(false);
-
-  // State cho form sản phẩm
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [productForm, setProductForm] = useState({
-    productName: "",
-    price: "",
-    unit: "",
-    shelfLife: "",
-    category: "",
-    description: "",
-    image: null,
-  });
-  const [productMsg, setProductMsg] = useState("");
-  const [productLoading, setProductLoading] = useState(false);
-
-  // Lấy danh sách categories để chọn
   const [categories, setCategories] = useState([]);
-  useEffect(() => {
-    if (isAdmin && showProductForm) {
-      api.get("/api/categories/").then((res) => setCategories(res.data));
-    }
-  }, [isAdmin, showProductForm]);
+  const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState({});
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [filterTab, setFilterTab] = useState("all");
 
   useEffect(() => {
-    // Lấy danh sách sản phẩm từ backend
-    const fetchProducts = async () => {
-      setLoading(true);
+    const fetchData = async () => {
       try {
-        const res = await api.get("/api/products/");
-        setProducts(res.data);
-      } catch {
-        setProducts([]);
+        const [productRes, categoryRes] = await Promise.all([
+          api.get("/api/products/"),
+          api.get("/api/categories/"),
+        ]);
+        setProducts(productRes.data);
+        setCategories(categoryRes.data);
+      } catch (err) {
+        console.error("Lỗi khi tải dữ liệu:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const handleCreateCategory = async (e) => {
-    e.preventDefault();
-    setCategoryLoading(true);
-    setCategoryMsg("");
-    try {
-      await api.post("/api/categories/", { categoryName });
-      setCategoryMsg("Tạo danh mục thành công!");
-      setCategoryName("");
-      setTimeout(() => {
-        setShowCategoryForm(false);
-        setCategoryMsg("");
-      }, 1200);
-    } catch (err) {
-      setCategoryMsg(
-        err.response?.data?.errors?.categoryName?.[0] || "Có lỗi xảy ra!"
-      );
-    } finally {
-      setCategoryLoading(false);
-    }
-  };
-
-  // Xử lý thay đổi input
-  const handleProductChange = (e) => {
-    const { name, value, files } = e.target;
-    if (name === "image") {
-      setProductForm({ ...productForm, image: files[0] });
-    } else {
-      setProductForm({ ...productForm, [name]: value });
-    }
-  };
-
-  // Xử lý submit form
-  const handleCreateProduct = async (e) => {
-    e.preventDefault();
-    setProductLoading(true);
-    setProductMsg("");
-    try {
-      const formData = new FormData();
-      Object.entries(productForm).forEach(([key, value]) => {
-        if (value) formData.append(key, value);
-      });
-      await api.post("/api/products/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setProductMsg("Tạo sản phẩm thành công!");
-      setProductForm({
-        productName: "",
-        price: "",
-        unit: "",
-        shelfLife: "",
-        category: "",
-        description: "",
-        image: null,
-      });
-      setTimeout(() => {
-        setShowProductForm(false);
-        setProductMsg("");
-      }, 1200);
-    } catch {
-      setProductMsg("Có lỗi xảy ra khi tạo sản phẩm!");
-    } finally {
-      setProductLoading(false);
-    }
-  };
-
-  // Thêm sản phẩm vào giỏ hàng qua API
   const handleAddToCart = async (product) => {
     const productId = product.productID;
     setAddingToCart((prev) => ({ ...prev, [productId]: true }));
@@ -131,191 +44,163 @@ const Store = () => {
         product_id: productId,
         quantity: 1,
       });
-
-      // Dispatch event để Header cập nhật cart count
       window.dispatchEvent(new Event("cartUpdated"));
-
-      // Có thể thêm thông báo thành công
-      // alert("Đã thêm sản phẩm vào giỏ hàng!");
     } catch (error) {
-      console.error("Lỗi khi thêm vào giỏ hàng:", error);
-      alert("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại!");
+      alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
     } finally {
       setAddingToCart((prev) => ({ ...prev, [productId]: false }));
     }
   };
 
+  const filteredProducts = products
+    .filter((p) =>
+      p.productName.toLowerCase().includes(search.toLowerCase())
+    )
+    .filter(
+      (p) => !selectedCategory || p.categoryID === Number(selectedCategory)
+    )
+    .filter((p) => {
+      if (filterTab === "popular") return p.rating >= 4.5;
+      if (filterTab === "discount") return p.oldPrice && p.oldPrice > p.price;
+      return true;
+    });
+
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Cửa hàng thực phẩm</h1>
-      {isAdmin && (
-        <div className="flex gap-4 mb-6">
-          <Link
-            to="/add-product"
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium"
-          >
-            + Thêm sản phẩm
-          </Link>
-          <button
-            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded font-medium"
-            onClick={() => setShowCategoryForm((v) => !v)}
-          >
-            + Thêm danh mục
-          </button>
-        </div>
-      )}
-      {showCategoryForm && (
-        <form
-          onSubmit={handleCreateCategory}
-          className="mb-6 bg-white p-4 rounded shadow max-w-md"
-        >
-          <div className="mb-2 font-semibold">Tạo danh mục mới</div>
-          <input
-            type="text"
-            value={categoryName}
-            onChange={(e) => setCategoryName(e.target.value)}
-            className="border px-3 py-2 rounded w-full mb-2"
-            placeholder="Tên danh mục"
-            required
-          />
-          <button
-            type="submit"
-            disabled={categoryLoading}
-            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded font-medium"
-          >
-            {categoryLoading ? "Đang tạo..." : "Tạo danh mục"}
-          </button>
-          {categoryMsg && (
-            <div className="mt-2 text-sm text-center text-green-600">
-              {categoryMsg}
-            </div>
-          )}
-        </form>
-      )}
-      {showProductForm && (
-        <form
-          onSubmit={handleCreateProduct}
-          className="mb-6 bg-white p-4 rounded shadow max-w-md"
-          encType="multipart/form-data"
-        >
-          <div className="mb-2 font-semibold">Tạo sản phẩm mới</div>
-          <input
-            type="text"
-            name="productName"
-            value={productForm.productName}
-            onChange={handleProductChange}
-            className="border px-3 py-2 rounded w-full mb-2"
-            placeholder="Tên sản phẩm"
-            required
-          />
-          <input
-            type="number"
-            name="price"
-            value={productForm.price}
-            onChange={handleProductChange}
-            className="border px-3 py-2 rounded w-full mb-2"
-            placeholder="Giá"
-            required
-          />
-          <input
-            type="text"
-            name="unit"
-            value={productForm.unit}
-            onChange={handleProductChange}
-            className="border px-3 py-2 rounded w-full mb-2"
-            placeholder="Đơn vị (ví dụ: /kg, /bó)"
-            required
-          />
-          <input
-            type="number"
-            name="shelfLife"
-            value={productForm.shelfLife}
-            onChange={handleProductChange}
-            className="border px-3 py-2 rounded w-full mb-2"
-            placeholder="Hạn sử dụng (ngày)"
-            required
-          />
-          <select
-            name="category"
-            value={productForm.category}
-            onChange={handleProductChange}
-            className="border px-3 py-2 rounded w-full mb-2"
-            required
-          >
-            <option value="">Chọn danh mục</option>
-            {categories.map((cat) => (
-              <option key={cat.categoryID} value={cat.categoryID}>
-                {cat.categoryName}
-              </option>
-            ))}
-          </select>
-          <textarea
-            name="description"
-            value={productForm.description}
-            onChange={handleProductChange}
-            className="border px-3 py-2 rounded w-full mb-2"
-            placeholder="Mô tả"
-          />
-          <input
-            type="file"
-            name="image"
-            accept="image/*"
-            onChange={handleProductChange}
-            className="mb-2"
-          />
-          <button
-            type="submit"
-            disabled={productLoading}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded font-medium"
-          >
-            {productLoading ? "Đang tạo..." : "Tạo sản phẩm"}
-          </button>
-          {productMsg && (
-            <div className="mt-2 text-sm text-center text-green-600">
-              {productMsg}
-            </div>
-          )}
-        </form>
-      )}
-      {loading ? (
-        <div>Đang tải sản phẩm...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
-            <div
-              key={product.productID}
-              className="bg-white rounded-lg shadow p-4 relative"
+    <div className="p-4 md:p-6">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 flex-wrap">
+        <h1 className="text-2xl md:text-3xl font-bold">Cửa hàng thực phẩm</h1>
+
+        {isAdmin && (
+          <div className="flex gap-2 flex-wrap">
+            <Link
+              to="/add-product"
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm"
             >
-              <div className="h-40 bg-gray-100 flex items-center justify-center mb-4">
-                <img
-                  src={product.image}
-                  alt={product.productName}
-                  className="max-h-full"
-                />
-              </div>
-              <div className="text-sm text-gray-500 mb-1">
-                <span className="inline-block bg-gray-100 px-2 py-0.5 rounded text-xs">
-                  {product.category_name}
-                </span>
-              </div>
-              <h2 className="text-lg font-semibold">{product.productName}</h2>
-              <p className="text-sm text-gray-500">{product.description}</p>
-              <div className="mt-2 text-base font-semibold">
-                {Number(product.price).toLocaleString()}đ
-                <span className="text-sm text-gray-500">{product.unit}</span>
-              </div>
-              <button
-                className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white text-sm py-2 rounded flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={() => handleAddToCart(product)}
-                disabled={addingToCart[product.productID]}
-              >
-                <ShoppingCart size={16} />
-                {addingToCart[product.productID]
-                  ? "Đang thêm..."
-                  : "Thêm vào giỏ"}
-              </button>
-            </div>
+              <Plus size={16} /> Thêm sản phẩm
+            </Link>
+            <Link
+              to="/add-category"
+              className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md text-sm"
+            >
+              <Plus size={16} /> Thêm danh mục
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Search and Filters */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 px-4 py-2 border rounded"
+          placeholder="Tìm kiếm sản phẩm..."
+        />
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="border px-4 py-2 rounded w-full md:w-auto"
+        >
+          <option value="">Tất cả danh mục</option>
+          {categories.map((cat) => (
+            <option key={cat.categoryID} value={cat.categoryID}>
+              {cat.categoryName}
+            </option>
           ))}
+        </select>
+      </div>
+
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {[
+          { key: "all", label: "Tất cả sản phẩm" },
+          { key: "popular", label: "Phổ biến" },
+          { key: "discount", label: "Khuyến mãi" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            className={`px-4 py-1 rounded-full font-medium text-sm ${
+              filterTab === tab.key
+                ? "bg-gray-900 text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+            onClick={() => setFilterTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <p>Đang tải sản phẩm...</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => {
+            const discount = product.oldPrice
+              ? Math.round((1 - product.price / product.oldPrice) * 100)
+              : 0;
+
+            return (
+              <div
+                key={product.productID}
+                className="bg-white rounded-lg shadow relative p-4"
+              >
+                {discount > 0 && (
+                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
+                    Giảm {discount}%
+                  </div>
+                )}
+
+                <div className="h-40 bg-gray-100 mb-3 flex items-center justify-center overflow-hidden">
+                  {product.image && (
+                    <img
+                      src={product.image}
+                      alt={product.productName}
+                      className="object-contain h-full"
+                    />
+                  )}
+                </div>
+
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span className="bg-gray-100 px-2 py-0.5 rounded">
+                    {product.category_name}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    ⭐ {product.rating || 4.5}
+                  </span>
+                </div>
+
+                <h2 className="text-lg font-semibold mb-1">
+                  {product.productName}
+                </h2>
+                <p className="text-sm text-gray-500 mb-2">
+                  {product.description}
+                </p>
+
+                <div className="mb-2">
+                  <span className="text-base font-bold text-black">
+                    {Number(product.price).toLocaleString()}đ
+                  </span>
+                  <span className="text-sm text-gray-500 ml-1">
+                    {product.unit}
+                  </span>
+                  {product.oldPrice && (
+                    <div className="text-sm line-through text-gray-400">
+                      {Number(product.oldPrice).toLocaleString()}đ
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  onClick={() => handleAddToCart(product)}
+                  disabled={addingToCart[product.productID]}
+                >
+                  <ShoppingCart size={16} />
+                  {addingToCart[product.productID] ? "Đang thêm..." : "Thêm vào giỏ"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
