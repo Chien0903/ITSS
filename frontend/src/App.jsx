@@ -32,14 +32,14 @@ function App() {
         <Route path="recipes" element={<Recipes />} />
         <Route path="plan" element={<Plans />} />
         <Route path="statistics" element={<Statistics />} />
+        <Route path="/add-product" element={<AddProduct />} />
+        <Route path="/cart" element={<Cart />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/select-group" element={<SelectGroup />} />
       <Route path="/create-group" element={<CreateGroup />} />
       <Route path="/logout" element={<Logout />} />
-      <Route path="/add-product" element={<AddProduct />} />
-      <Route path="/cart" element={<Cart />} />
     </Routes>
   );
 }
