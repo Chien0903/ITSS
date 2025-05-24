@@ -1,10 +1,13 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from ..models.categories import Categories
 from ..serializers.categories_serializer import CategoriesSerializer
 
 class CategoriesView(APIView):
+    permission_classes = [AllowAny]  # Cho phép truy cập không cần authentication
+    
     def get(self, request):
         categories = Categories.objects.all()
         serializer = CategoriesSerializer(categories, many=True)
@@ -24,6 +27,8 @@ class CategoriesView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 class CategoriesDetailView(APIView):
+    permission_classes = [AllowAny]  # Cho phép truy cập không cần authentication
+    
     def get_object(self, pk):
         try:
             return Categories.objects.get(pk=pk)

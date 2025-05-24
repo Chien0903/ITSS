@@ -11,11 +11,7 @@ const Cart = () => {
 
   const fetchCart = async () => {
     try {
-      const res = await api.get("/api/cart/", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
+      const res = await api.get("/api/cart/");
       setCartItems(res.data.items);
     } catch (err) {
       console.error("Lỗi khi tải giỏ hàng:", err);
