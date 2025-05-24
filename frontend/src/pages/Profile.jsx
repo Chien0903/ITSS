@@ -1,13 +1,71 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api";
 
 const Profile = () => {
-  const user = {
-    fullName: "Nguyen Van A",
-    email: "nguyenvana@example.com",
-    phone: "0123456789",
-    address: "2 Đ.Giải Phóng, Bách Khoa, Hai Bà Trưng, Hà Nội, Việt Nam",
-    joinedDate: "2024-01-15",
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchUserInfo();
+  }, []);
+
+  const fetchUserInfo = async () => {
+    try {
+      // Thử lấy từ API trước
+      const response = await api.get("/api/user/me/");
+      setUser(response.data.user);
+    } catch (err) {
+      // Nếu API lỗi, thử lấy từ localStorage
+      console.error("Lỗi khi gọi API user info:", err);
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+        } else {
+          setError(
+            "Không thể tải thông tin người dùng. Vui lòng đăng nhập lại."
+          );
+          navigate("/login");
+        }
+      } catch (localStorageError) {
+        console.error("Lỗi khi lấy thông tin user:", localStorageError);
+        setError("Không thể tải thông tin người dùng. Vui lòng đăng nhập lại.");
+        navigate("/login");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="text-center">Đang tải thông tin...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="text-center text-red-500">{error}</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <div className="text-center text-red-500">
+          Không thể tải thông tin người dùng. Vui lòng đăng nhập lại.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -16,27 +74,29 @@ const Profile = () => {
       <div className="bg-white shadow rounded-lg p-6 space-y-6">
         <div>
           <label className="text-sm text-gray-500">Họ và tên</label>
-          <p className="text-lg font-medium">{user.fullName}</p>
+          <p className="text-lg font-medium">{user.name || "Chưa cập nhật"}</p>
         </div>
 
         <div>
           <label className="text-sm text-gray-500">Email</label>
-          <p className="text-lg font-medium">{user.email}</p>
+          <p className="text-lg font-medium">{user.email || "Chưa cập nhật"}</p>
         </div>
 
         <div>
-          <label className="text-sm text-gray-500">Số điện thoại</label>
-          <p className="text-lg font-medium">{user.phone}</p>
+          <label className="text-sm text-gray-500">Username</label>
+          <p className="text-lg font-medium">
+            {user.username || "Chưa cập nhật"}
+          </p>
         </div>
 
         <div>
-          <label className="text-sm text-gray-500">Địa chỉ</label>
-          <p className="text-lg font-medium">{user.address}</p>
+          <label className="text-sm text-gray-500">ID</label>
+          <p className="text-lg font-medium">{user.id || "N/A"}</p>
         </div>
 
         <div>
-          <label className="text-sm text-gray-500">Thành viên từ</label>
-          <p className="text-lg font-medium">{user.joinedDate}</p>
+          <label className="text-sm text-gray-500">Vai trò</label>
+          <p className="text-lg font-medium">{user.role || "Người dùng"}</p>
         </div>
 
         <div className="text-right">

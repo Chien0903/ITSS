@@ -24,6 +24,7 @@ const Login = ({ onLogin }) => {
 
     try {
       const response = await api.post("/api/token/", formData);
+      console.log(response.data);
       if (response.status === 200) {
         // Lưu thông tin người dùng vào localStorage
         localStorage.setItem("user", JSON.stringify(response.data.user));
