@@ -31,8 +31,10 @@ class GroupAdmin(admin.ModelAdmin):
 # Đăng ký Fridge model
 @admin.register(Fridge)
 class FridgeAdmin(admin.ModelAdmin):
-    list_display = ('fridgeID', 'fridgeName')
-    search_fields = ('fridgeName',)
+    list_display = ('fridgeID', 'group_name')
+
+    def group_name(self, obj):
+        return obj.group.groupName
 
 # Đăng ký Categories model
 @admin.register(Categories)
