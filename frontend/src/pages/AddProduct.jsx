@@ -58,7 +58,7 @@ const AddProduct = () => {
       submitFormData.append("description", formData.description);
       submitFormData.append("original_price", formData.original_price);
       submitFormData.append("discount", formData.discount);
-      // submitFormData.append("unit", formData.unit);
+      submitFormData.append("unit", formData.unit);
       submitFormData.append("shelfLife", formData.shelfLife);
       submitFormData.append("category", formData.category);
 
