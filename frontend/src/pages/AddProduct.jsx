@@ -20,20 +20,7 @@ const AddProduct = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const units = [
-    "kg",
-    "g",
-    "lít",
-    "ml",
-    "cái",
-    "gói",
-    "hộp",
-    "túi",
-    "lon",
-    "chai",
-    "vỉ",
-    "bó",
-  ];
+
 
   useEffect(() => {
     // Lấy danh sách categories từ backend
@@ -71,7 +58,7 @@ const AddProduct = () => {
       submitFormData.append("description", formData.description);
       submitFormData.append("original_price", formData.original_price);
       submitFormData.append("discount", formData.discount);
-      submitFormData.append("unit", formData.unit);
+      // submitFormData.append("unit", formData.unit);
       submitFormData.append("shelfLife", formData.shelfLife);
       submitFormData.append("category", formData.category);
 
@@ -212,24 +199,7 @@ const AddProduct = () => {
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Đơn vị *
-                  </label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) =>
-                      setFormData({ ...formData, unit: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {units.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                
               </div>
             </div>
           </div>
@@ -424,9 +394,9 @@ const AddProduct = () => {
                           <span className="text-sm text-gray-500 line-through">
                             Giá gốc: {formData.original_price.toLocaleString()}đ
                           </span>
-                          <span className="text-sm text-gray-500">
+                          {/* <span className="text-sm text-gray-500">
                             /{formData.unit}
-                          </span>
+                          </span> */}
                         </div>
                         <p className="text-xs text-green-600">
                           Tiết kiệm: {discountAmount.toLocaleString()}đ
@@ -437,9 +407,9 @@ const AddProduct = () => {
                         <span className="font-bold text-gray-900 text-lg">
                           {formData.original_price.toLocaleString()}đ
                         </span>
-                        <span className="text-sm text-gray-500">
+                        {/* <span className="text-sm text-gray-500">
                           /{formData.unit}
-                        </span>
+                        </span> */}
                       </div>
                     )}
                   </div>

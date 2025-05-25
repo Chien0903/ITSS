@@ -31,20 +31,7 @@ const ShoppingListDetail = () => {
     { value: "other", label: "Khác", color: "#6b7280" },
   ];
 
-  const units = [
-    "kg",
-    "g",
-    "lít",
-    "ml",
-    "cái",
-    "gói",
-    "hộp",
-    "túi",
-    "lon",
-    "chai",
-    "bó",
-    "ổ",
-  ];
+ 
 
   // API: Lấy chi tiết shopping list
   const fetchShoppingListDetail = async () => {
