@@ -6,6 +6,8 @@ from rest_framework.permissions import AllowAny
 from ..models.product_catalog import ProductCatalog
 from ..serializers.product_catalog_serializer import ProductCatalogSerializer
 import cloudinary.uploader
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 
 
 class ProductCatalogView(APIView):
@@ -120,3 +122,28 @@ class ProductPriceView(APIView):
             return Response({
                 'message': 'Không tìm thấy sản phẩm'
             }, status=status.HTTP_404_NOT_FOUND)
+        
+#Tìm kiếm để thêm vào tủ lạnh
+class ProductCatalogSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get("q", "")
+        if not query:
+            return Response([])
+
+        products = ProductCatalog.objects.filter(Q(productName__icontains=query)).select_related('category').order_by('productName')[:10]
+        results = []
+        for product in products:
+            results.append({
+                'productID': product.productID,
+                'productName': product.productName,
+                'unit': product.unit,
+                'shelfLife': product.shelfLife,
+                'isCustom': product.isCustom,
+                'categoryName': product.category.categoryName if product.category else None,
+                'image': product.image,
+            })
+
+        return Response(results)
+    
