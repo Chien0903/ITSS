@@ -53,15 +53,13 @@ const Store = () => {
   };
 
   const filteredProducts = products
-    .filter((p) =>
-      p.productName.toLowerCase().includes(search.toLowerCase())
-    )
+    .filter((p) => p.productName.toLowerCase().includes(search.toLowerCase()))
     .filter(
       (p) => !selectedCategory || p.categoryID === Number(selectedCategory)
     )
     .filter((p) => {
       if (filterTab === "popular") return p.rating >= 4.5;
-      if (filterTab === "discount") return p.oldPrice && p.oldPrice > p.price;
+      if (filterTab === "discount") return p.discount > 0;
       return true;
     });
 
@@ -135,8 +133,9 @@ const Store = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => {
-            const discount = product.oldPrice
-              ? Math.round((1 - product.price / product.oldPrice) * 100)
+            const hasDiscount = product.discount > 0;
+            const discountPercentage = hasDiscount
+              ? Math.round(product.discount)
               : 0;
 
             return (
@@ -144,9 +143,9 @@ const Store = () => {
                 key={product.productID}
                 className="bg-white rounded-lg shadow relative p-4"
               >
-                {discount > 0 && (
+                {hasDiscount && (
                   <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded">
-                    Giảm {discount}%
+                    Giảm {discountPercentage}%
                   </div>
                 )}
 
@@ -177,15 +176,43 @@ const Store = () => {
                 </p>
 
                 <div className="mb-2">
-                  <span className="text-base font-bold text-black">
-                    {Number(product.price).toLocaleString()}đ
-                  </span>
-                  <span className="text-sm text-gray-500 ml-1">
-                    {product.unit}
-                  </span>
-                  {product.oldPrice && (
-                    <div className="text-sm line-through text-gray-400">
-                      {Number(product.oldPrice).toLocaleString()}đ
+                  {hasDiscount ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-red-600">
+                          {Number(product.price).toLocaleString()}đ
+                        </span>
+                        <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded">
+                          -{discountPercentage}%
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm line-through text-gray-400">
+                          Giá gốc:{" "}
+                          {Number(product.original_price).toLocaleString()}đ
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          /{product.unit}
+                        </span>
+                      </div>
+                      {product.discount_amount && (
+                        <p className="text-xs text-green-600">
+                          Tiết kiệm:{" "}
+                          {Number(product.discount_amount).toLocaleString()}đ
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-lg font-bold text-gray-900">
+                        {Number(
+                          product.price || product.original_price
+                        ).toLocaleString()}
+                        đ
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        /{product.unit}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -196,7 +223,9 @@ const Store = () => {
                   disabled={addingToCart[product.productID]}
                 >
                   <ShoppingCart size={16} />
-                  {addingToCart[product.productID] ? "Đang thêm..." : "Thêm vào giỏ"}
+                  {addingToCart[product.productID]
+                    ? "Đang thêm..."
+                    : "Thêm vào giỏ"}
                 </button>
               </div>
             );

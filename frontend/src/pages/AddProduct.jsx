@@ -9,8 +9,8 @@ const AddProduct = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: 0,
-    discount: 0,
+    original_price: 0,
+    discount: 0, // Phần trăm giảm giá
     category: "",
     shelfLife: 30,
     unit: "kg",
@@ -40,7 +40,6 @@ const AddProduct = () => {
     const fetchCategories = async () => {
       try {
         const res = await api.get("/api/categories/");
-        console.log("Categories response:", res.data);
         setCategories(res.data);
       } catch (error) {
         console.error("Lỗi khi lấy danh mục:", error);
@@ -56,7 +55,7 @@ const AddProduct = () => {
     if (
       !formData.name ||
       !formData.description ||
-      formData.price <= 0 ||
+      formData.original_price <= 0 ||
       !formData.category
     ) {
       setMessage("Vui lòng điền đầy đủ thông tin sản phẩm!");
@@ -70,7 +69,7 @@ const AddProduct = () => {
       const submitFormData = new FormData();
       submitFormData.append("productName", formData.name);
       submitFormData.append("description", formData.description);
-      submitFormData.append("price", formData.price);
+      submitFormData.append("original_price", formData.original_price);
       submitFormData.append("discount", formData.discount);
       submitFormData.append("unit", formData.unit);
       submitFormData.append("shelfLife", formData.shelfLife);
@@ -113,14 +112,21 @@ const AddProduct = () => {
     setFormData({ ...formData, image: null });
   };
 
-  const calculateDiscountPercent = () => {
-    if (formData.discount && formData.price > 0) {
-      return Math.round((formData.discount / formData.price) * 100);
+  // Tính giá sau khi giảm
+  const calculateDiscountedPrice = () => {
+    if (formData.discount > 0 && formData.original_price > 0) {
+      return formData.original_price * (1 - formData.discount / 100);
     }
-    return 0;
+    return formData.original_price;
   };
 
-  const discountedPrice = formData.price - formData.discount;
+  // Tính số tiền được giảm
+  const calculateDiscountAmount = () => {
+    return formData.original_price - calculateDiscountedPrice();
+  };
+
+  const discountedPrice = calculateDiscountedPrice();
+  const discountAmount = calculateDiscountAmount();
   const hasDiscount = formData.discount > 0;
 
   return (
@@ -245,11 +251,11 @@ const AddProduct = () => {
                     type="number"
                     min="0"
                     placeholder="0"
-                    value={formData.price || ""}
+                    value={formData.original_price || ""}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        price: parseFloat(e.target.value) || 0,
+                        original_price: parseFloat(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -259,12 +265,12 @@ const AddProduct = () => {
 
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Giảm giá (VNĐ)
+                    Giảm giá (%)
                   </label>
                   <input
                     type="number"
                     min="0"
-                    max={formData.price}
+                    max="100"
                     placeholder="0"
                     value={formData.discount || ""}
                     onChange={(e) =>
@@ -275,10 +281,15 @@ const AddProduct = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  {hasDiscount && formData.price > 0 && (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      Giảm {calculateDiscountPercent()}%
-                    </span>
+                  {hasDiscount && (
+                    <div className="space-y-1">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        Giảm {formData.discount}%
+                      </span>
+                      <p className="text-xs text-gray-500">
+                        Tiết kiệm: {discountAmount.toLocaleString()}đ
+                      </p>
+                    </div>
                   )}
                 </div>
 
@@ -302,6 +313,29 @@ const AddProduct = () => {
                   />
                 </div>
               </div>
+
+              {/* Hiển thị giá sau khi giảm */}
+              {hasDiscount && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-green-800 mb-2">
+                    Thông tin giá sau giảm
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-green-700">Giá gốc:</span>
+                      <p className="font-semibold">
+                        {formData.original_price.toLocaleString()}đ
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-green-700">Giá bán:</span>
+                      <p className="font-semibold text-red-600">
+                        {discountedPrice.toLocaleString()}đ
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -375,24 +409,39 @@ const AddProduct = () => {
                     {formData.description || "Mô tả sản phẩm"}
                   </p>
 
-                  <div className="flex items-baseline gap-2">
+                  <div className="space-y-1">
                     {hasDiscount ? (
                       <>
-                        <span className="font-bold text-red-600">
-                          {discountedPrice.toLocaleString()}đ
-                        </span>
-                        <span className="text-sm text-gray-500 line-through">
-                          {formData.price.toLocaleString()}đ
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-red-600 text-lg">
+                            {discountedPrice.toLocaleString()}đ
+                          </span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                            -{formData.discount}%
+                          </span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-sm text-gray-500 line-through">
+                            Giá gốc: {formData.original_price.toLocaleString()}đ
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            /{formData.unit}
+                          </span>
+                        </div>
+                        <p className="text-xs text-green-600">
+                          Tiết kiệm: {discountAmount.toLocaleString()}đ
+                        </p>
                       </>
                     ) : (
-                      <span className="font-bold text-gray-900">
-                        {formData.price.toLocaleString()}đ
-                      </span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-bold text-gray-900 text-lg">
+                          {formData.original_price.toLocaleString()}đ
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          /{formData.unit}
+                        </span>
+                      </div>
                     )}
-                    <span className="text-sm text-gray-500">
-                      /{formData.unit}
-                    </span>
                   </div>
 
                   <div className="flex flex-wrap gap-1">

@@ -15,6 +15,8 @@ import SelectGroup from "./pages/SelectGroup";
 import CreateGroup from "./pages/CreateGroup";
 import AddProduct from "./pages/AddProduct";
 import Cart from "./pages/Cart";
+import AddShoppingList from "./pages/addShoppingList";
+import ShoppingListDetail from "./pages/ShoppingListDetail";
 
 function Logout() {
   localStorage.clear();
@@ -34,6 +36,8 @@ function App() {
         <Route path="statistics" element={<Statistics />} />
         <Route path="/add-product" element={<AddProduct />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="add-shopping-list" element={<AddShoppingList />} />
+        <Route path="shopping-list/:id" element={<ShoppingListDetail />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
