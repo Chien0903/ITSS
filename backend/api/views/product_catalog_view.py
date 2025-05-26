@@ -126,13 +126,12 @@ class ProductPriceView(APIView):
 #Tìm kiếm 
 class ProductCatalogSearchView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request):
         query = request.query_params.get("q", "")
         if not query:
             return Response([])
 
-        products = ProductCatalog.objects.filter(Q(productName__icontains=query)).select_related('category').order_by('productName')[:10]
+        products = ProductCatalog.objects.filter(Q(productName__icontains=query), isCustom=False).select_related('category').order_by('productName')[:10]
         results = []
         for product in products:
             results.append({
