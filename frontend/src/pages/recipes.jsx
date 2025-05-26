@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Save, Upload, X } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Save, Upload, X } from "lucide-react";
 import api from "../api";
 
-const user = JSON.parse(localStorage.getItem("user"));
-const isAdmin = user && user.role === "Admin";
-console.log(isAdmin)
 const Recipes = () => {
+  const isAdmin = 1; // Giả sử người dùng là admin
   const [recipes, setRecipes] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -16,13 +13,14 @@ const Recipes = () => {
     recipeName: "",
     description: "",
     instruction: "",
-    ingredient_ids: [], // Changed to store product IDs
-    image: null, // This will hold the File object for upload
+    ingredients: [], // Lưu cả ingredient từ catalog và custom
+    image: null,
   });
   const [imagePreview, setImagePreview] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredIngredients, setFilteredIngredients] = useState([]);
-  const [selectedIngredients, setSelectedIngredients] = useState([]); // For display purposes
+  const [isFromCatalog, setIsFromCatalog] = useState(false);
+  const [saveToCatalog, setSaveToCatalog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -30,30 +28,36 @@ const Recipes = () => {
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
-        const response = await api.get("api/recipes/");
+        const response = await api.get("/api/recipes/");
         setRecipes(
           response.data.map((recipe) => ({
             id: recipe.recipeID,
             title: recipe.recipeName,
             description: recipe.description,
             instructions: recipe.instruction,
-            // START: THAY ĐỔI ĐỂ LẤY URL ẢNH TỪ CLOUDINARY
-            image: recipe.image // Dùng trực tiếp URL từ API (do Django lưu từ Cloudinary)
-              ? recipe.image
-              : "/images/default.jpg", // Ảnh mặc định nếu không có
-            // END: THAY ĐỔI
+            image: recipe.image ? recipe.image : "/images/default.jpg",
             tags: recipe.recipeName.split(" ").slice(0, 3),
             liked: false,
-            ingredients: recipe.isingredient_set
-              ? recipe.isingredient_set.map((ing) => ({
-                  id: ing.product.productID,
-                  name: ing.product.productName,
-                  available: true,
-                  // Nếu bạn đã thêm trường 'quantity' vào model IsIngredient
-                  // thì cũng nên thêm vào đây:
-                  // quantity: ing.quantity,
-                }))
-              : [],
+            ingredients: [
+              ...(recipe.isingredient_set
+                ? recipe.isingredient_set.map((ing) => ({
+                    productID: ing.product.productID,
+                    productName: ing.product.productName,
+                    unit: ing.product.unit,
+                    categoryName: ing.product.categoryName || "Null",
+                    isCustom: false,
+                  }))
+                : []),
+              ...(recipe.custom_ingredients
+                ? JSON.parse(recipe.custom_ingredients).map((ing) => ({
+                    productID: ing.id,
+                    productName: ing.name,
+                    unit: ing.unit || "unit",
+                    categoryName: ing.categoryName || "Null",
+                    isCustom: true,
+                  }))
+                : []),
+            ],
           }))
         );
       } catch (err) {
@@ -68,67 +72,97 @@ const Recipes = () => {
   const handleSearch = async (e) => {
     const term = e.target.value;
     setSearchTerm(term);
-    if (term.trim()) {
-      try {
-        const response = await api.get(`api/products/search/?q=${term}`);
-        const results = response.data.map((product) => ({
-          id: product.productID,
-          name: product.productName,
-        }));
-        setFilteredIngredients(results);
-      } catch (err) {
-        console.error("Lỗi khi tìm kiếm nguyên liệu:", err);
-        setFilteredIngredients([]);
-      }
-    } else {
+    setIsFromCatalog(false);
+
+    if (term.length < 2) {
+      setFilteredIngredients([]);
+      return;
+    }
+
+    try {
+      const response = await api.get("/api/products/search/", {
+        params: { q: term },
+      });
+      setFilteredIngredients(
+        response.data.map((product) => ({
+          productID: product.productID,
+          productName: product.productName,
+          unit: product.unit,
+          categoryName: product.categoryName || "Null",
+        }))
+      );
+    } catch (err) {
+      console.error("Search error:", err);
       setFilteredIngredients([]);
     }
   };
 
   // Handle selecting an existing ingredient
   const handleSelectIngredient = (ingredient) => {
-    if (!formData.ingredient_ids.includes(ingredient.id)) {
+    if (!formData.ingredients.some((ing) => ing.productID === ingredient.productID && !ing.isCustom)) {
       setFormData((prev) => ({
         ...prev,
-        ingredient_ids: [...prev.ingredient_ids, ingredient.id],
+        ingredients: [
+          ...prev.ingredients,
+          { ...ingredient, isCustom: false },
+        ],
       }));
-      setSelectedIngredients((prev) => [
-        ...prev,
-        { id: ingredient.id, name: ingredient.name },
-      ]);
+      setSearchTerm(ingredient.productName);
+      setIsFromCatalog(true);
+      setFilteredIngredients([]);
+      setSaveToCatalog(false);
+    } else {
+      setMessage("Nguyên liệu này đã được chọn!");
     }
-    setSearchTerm("");
-    setFilteredIngredients([]);
   };
 
   // Handle adding a new ingredient
   const handleAddNewIngredient = async () => {
     if (!searchTerm.trim()) return;
-    try {
-      const productData = {
-        productName: searchTerm.trim(),
-        original_price: 0,
-        price: 0,
-        unit: "unit",
-        shelfLife: 7,
-        isCustom: true,
-      };
-      const response = await api.post("api/products/", productData);
-      const newProduct = {
-        id: response.data.productID,
-        name: response.data.productName,
-      };
-      setFormData((prev) => ({
-        ...prev,
-        ingredient_ids: [...prev.ingredient_ids, newProduct.id],
-      }));
-      setSelectedIngredients((prev) => [...prev, newProduct]);
-      setSearchTerm("");
-      setFilteredIngredients([]);
-    } catch (err) {
-      setMessage("Lỗi khi thêm nguyên liệu mới");
-      console.error(err);
+    if (
+      formData.ingredients.some(
+        (ing) => ing.productName.toLowerCase() === searchTerm.trim().toLowerCase()
+      )
+    ) {
+      setMessage("Nguyên liệu này đã được chọn!");
+      return;
     }
+
+    const newIngredient = {
+      productID: null,
+      productName: searchTerm.trim(),
+      unit: "unit",
+      categoryName: "Null",
+      isCustom: true,
+    };
+
+    if (saveToCatalog) {
+      try {
+        const productData = {
+          productName: searchTerm.trim(),
+          unit: "unit",
+          categoryName: "Null",
+          original_price: 0,
+          price: 0,
+          shelfLife: 7,
+        };
+        const response = await api.post("/api/products/", productData);
+        newIngredient.productID = response.data.productID;
+        newIngredient.isCustom = false;
+      } catch (err) {
+        setMessage("Lỗi khi thêm nguyên liệu mới vào danh mục");
+        console.error(err);
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      ingredients: [...prev.ingredients, newIngredient],
+    }));
+    setSearchTerm("");
+    setFilteredIngredients([]);
+    setSaveToCatalog(false);
   };
 
   // Handle input change
@@ -160,13 +194,35 @@ const Recipes = () => {
   // Remove image
   const removeImage = () => {
     setImagePreview("");
-    setFormData({ ...formData, image: null }); // Quan trọng: set image về null
+    setFormData({ ...formData, image: null });
   };
 
-  // Submit form
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      recipeName: "",
+      description: "",
+      instruction: "",
+      ingredients: [],
+      image: null,
+    });
+    setImagePreview("");
+    setSearchTerm("");
+    setFilteredIngredients([]);
+    setIsFromCatalog(false);
+    setSaveToCatalog(false);
+    setMessage("");
+  };
+
+  // Handle submit (add or update recipe)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.recipeName || !formData.description || !formData.instruction) {
+    if (
+      !formData.recipeName ||
+      !formData.description ||
+      !formData.instruction ||
+      formData.ingredients.length === 0
+    ) {
       setMessage("Vui lòng điền đầy đủ thông tin!");
       return;
     }
@@ -179,81 +235,86 @@ const Recipes = () => {
       submitFormData.append("recipeName", formData.recipeName);
       submitFormData.append("description", formData.description);
       submitFormData.append("instruction", formData.instruction);
-      submitFormData.append("isCustom", true);
 
-      // Append each ingredient ID individually
-      // Nếu bạn đã thay đổi backend để nhận list of dicts cho ingredients (có quantity)
-      // thì bạn sẽ cần thay đổi logic append FormData tại đây
-      formData.ingredient_ids.forEach((id) => {
-        submitFormData.append("ingredient_ids", id);
+      // Append ingredient IDs (non-custom)
+      formData.ingredients.forEach((ing) => {
+        if (!ing.isCustom && ing.productID) {
+          submitFormData.append("ingredient_ids", ing.productID);
+        }
       });
 
-      if (formData.image) {
-        // Đây là trường bạn đã đặt trong serializer của Django (ví dụ: image_upload)
-        // Nếu bạn dùng tên khác, hãy thay đổi "image_upload" cho phù hợp
-        submitFormData.append("image_upload", formData.image);
-      } else if (isEditMode && imagePreview === "") {
-        // Nếu đang ở chế độ chỉnh sửa và người dùng đã xóa ảnh cũ
-        submitFormData.append("image_upload", ""); // Gửi rỗng để backend biết xóa ảnh cũ
-      }
+      // Append custom ingredients as JSON string
+      const customIngredients = formData.ingredients
+        .filter((ing) => ing.isCustom)
+        .map((ing) => ({
+          id: `custom-${Date.now()}-${Math.random()}`,
+          name: ing.productName,
+          unit: ing.unit,
+          categoryName: ing.categoryName,
+        }));
+      submitFormData.append("custom_ingredients", JSON.stringify(customIngredients));
 
+      if (formData.image) {
+        submitFormData.append("image_upload", formData.image);
+      } else if (isEditMode && imagePreview === "/images/default.jpg") {
+        submitFormData.append("image_upload", "");
+      }
 
       let recipeId;
       if (isEditMode) {
-        await api.put(`api/recipes/${selectedRecipe.id}/`, submitFormData, {
+        await api.put(`/api/recipes/${selectedRecipe.id}/`, submitFormData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         recipeId = selectedRecipe.id;
       } else {
-        const response = await api.post("api/recipes/", submitFormData, {
+        const response = await api.post("/api/recipes/", submitFormData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         recipeId = response.data.recipeID;
       }
 
-      // Re-fetch recipes after successful add/edit to ensure data consistency
-      const response = await api.get("api/recipes/");
+      // Refetch recipes
+      const response = await api.get("/api/recipes/");
       setRecipes(
         response.data.map((recipe) => ({
           id: recipe.recipeID,
           title: recipe.recipeName,
           description: recipe.description,
           instructions: recipe.instruction,
-          // START: THAY ĐỔI ĐỂ LẤY URL ẢNH TỪ CLOUDINARY
-          image: recipe.image // Dùng trực tiếp URL từ API (do Django lưu từ Cloudinary)
-            ? recipe.image
-            : "/images/default.jpg", // Ảnh mặc định nếu không có
-          // END: THAY ĐỔI
+          image: recipe.image ? recipe.image : "/images/default.jpg",
           tags: recipe.recipeName.split(" ").slice(0, 3),
-          time: "30 phút", // These seem like static values, consider if they should be dynamic
-          people: 4, // These seem like static values, consider if they should be dynamic
           liked: false,
-          ingredients: recipe.isingredient_set
-            ? recipe.isingredient_set.map((ing) => ({
-                id: ing.product.productID,
-                name: ing.product.productName,
-                available: true,
-                // Nếu bạn đã thêm trường 'quantity' vào model IsIngredient
-                // thì cũng nên thêm vào đây:
-                // quantity: ing.quantity,
-              }))
-            : [],
+          ingredients: [
+            ...(recipe.isingredient_set
+              ? recipe.isingredient_set.map((ing) => ({
+                  productID: ing.product.productID,
+                  productName: ing.product.productName,
+                  unit: ing.product.unit,
+                  categoryName: ing.product.categoryName || "Null",
+                  isCustom: false,
+                }))
+              : []),
+            ...(recipe.custom_ingredients
+              ? JSON.parse(recipe.custom_ingredients).map((ing) => ({
+                  productID: ing.id,
+                  productName: ing.name,
+                  unit: ing.unit || "unit",
+                  categoryName: ing.categoryName || "Null",
+                  isCustom: true,
+                }))
+              : []),
+          ],
         }))
       );
 
-      setMessage("Recipe saved successfully!");
+      setMessage("Công thức được lưu thành công!");
       setTimeout(() => {
         setIsAddModalOpen(false);
         setIsEditMode(false);
-        setFormData({ recipeName: "", description: "", instruction: "", ingredient_ids: [], image: null });
-        setImagePreview("");
-        setSearchTerm("");
-        setFilteredIngredients([]);
-        setSelectedIngredients([]);
-        setMessage(""); // Clear message after successful operation
+        resetForm();
       }, 1500);
     } catch (err) {
-      setMessage("Failed to save recipe");
+      setMessage("Lỗi khi lưu công thức");
       console.error("Error saving recipe:", err.response ? err.response.data : err.message);
     } finally {
       setLoading(false);
@@ -263,57 +324,46 @@ const Recipes = () => {
   // Handle delete recipe
   const handleDelete = async () => {
     try {
-      await api.delete(`api/recipes/${selectedRecipe.id}/`);
+      await api.delete(`/api/recipes/${selectedRecipe.id}/`);
       setRecipes(recipes.filter((recipe) => recipe.id !== selectedRecipe.id));
       setIsDetailsModalOpen(false);
       setSelectedRecipe(null);
-      setMessage("Recipe deleted successfully!");
+      setMessage("Xóa công thức thành công!");
       setTimeout(() => setMessage(""), 1500);
     } catch (err) {
-      setMessage("Failed to delete recipe");
+      setMessage("Lỗi khi xóa công thức");
       console.error(err);
     }
   };
 
-  // Open edit form
+  // Handle edit recipe
   const handleEdit = () => {
     setFormData({
       recipeName: selectedRecipe.title,
       description: selectedRecipe.description,
       instruction: selectedRecipe.instructions,
-      ingredient_ids: selectedRecipe.ingredients.map((ing) => ing.id),
-      image: null, // Đặt image về null, vì bạn sẽ hiển thị qua imagePreview
+      ingredients: selectedRecipe.ingredients,
+      image: null,
     });
-    setSelectedIngredients(selectedRecipe.ingredients); // Populate selectedIngredients for display
-    setImagePreview(selectedRecipe.image); // Sử dụng URL ảnh hiện có để hiển thị preview
+    setImagePreview(selectedRecipe.image);
     setIsEditMode(true);
     setIsDetailsModalOpen(false);
     setIsAddModalOpen(true);
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto p-6">
+    <div className="space-y-3 max-w-4xl mx-auto p-6">
       <div className="flex items-center space-x-4">
-        <Link
-          to="/store"
-          className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại cửa hàng
-        </Link>
         <h1 className="text-3xl font-bold text-gray-900">Công thức nấu ăn</h1>
       </div>
 
       <div className="flex justify-end gap-2 mb-4">
-        {isAdmin && (
+        {isAdmin === 1 && (
           <button
             onClick={() => {
               setIsAddModalOpen(true);
               setIsEditMode(false);
-              setFormData({ recipeName: "", description: "", instruction: "", ingredient_ids: [], image: null });
-              setImagePreview("");
-              setSelectedIngredients([]);
-              setMessage(""); // Clear message when opening add modal
+              resetForm();
             }}
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 text-sm rounded-lg"
           >
@@ -334,7 +384,7 @@ const Recipes = () => {
       {message && (
         <p
           className={`text-sm text-center ${
-            message.includes("successfully") ? "text-green-600" : "text-red-600"
+            message.includes("thành công") ? "text-green-600" : "text-red-600"
           }`}
         >
           {message}
@@ -345,17 +395,15 @@ const Recipes = () => {
         {recipes.map((recipe) => (
           <div key={recipe.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
             <img
-              src={recipe.image} // Dùng trực tiếp URL ảnh
+              src={recipe.image}
               alt={recipe.title}
               className="w-full h-40 object-cover rounded mb-3"
               onError={(e) => {
-                e.target.src = "/images/default.jpg"; // Fallback nếu ảnh lỗi
+                e.target.src = "/images/default.jpg";
               }}
             />
             <h2 className="text-xl font-semibold mb-1">{recipe.title}</h2>
             <p className="text-gray-500 text-sm mb-2">{recipe.description}</p>
-            <div className="flex flex-wrap gap-2 text-xs mb-2">
-            </div>
             <button
               onClick={() => {
                 setSelectedRecipe(recipe);
@@ -372,7 +420,7 @@ const Recipes = () => {
       {/* Add/Edit Recipe Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-md flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4">
               {isEditMode ? "Cập nhật công thức" : "Thêm công thức mới"}
             </h2>
@@ -423,38 +471,55 @@ const Recipes = () => {
                   <div className="mt-2 max-h-40 overflow-y-auto border rounded bg-white">
                     {filteredIngredients.map((ingredient) => (
                       <div
-                        key={ingredient.id}
+                        key={ingredient.productID}
                         className="p-2 hover:bg-gray-100 cursor-pointer"
                         onClick={() => handleSelectIngredient(ingredient)}
                       >
-                        {ingredient.name}
+                        {ingredient.productName} ({ingredient.unit})
                       </div>
                     ))}
                     {searchTerm &&
                       !filteredIngredients.some(
-                        (ing) => ing.name.toLowerCase() === searchTerm.toLowerCase()
+                        (ing) => ing.productName.toLowerCase() === searchTerm.toLowerCase()
                       ) && (
-                        <div
-                          className="p-2 hover:bg-gray-100 cursor-pointer text-blue-500"
-                          onClick={handleAddNewIngredient}
-                        >
-                          Thêm nguyên liệu mới: {searchTerm}
+                        <div className="p-2 border-t">
+                          <div
+                            className="hover:bg-gray-100 cursor-pointer text-blue-500"
+                            onClick={handleAddNewIngredient}
+                          >
+                            Thêm nguyên liệu mới: {searchTerm}
+                          </div>
+                          {isAdmin === 1 && (
+                            <label className="flex items-center mt-2">
+                              <input
+                                type="checkbox"
+                                checked={saveToCatalog}
+                                onChange={(e) => setSaveToCatalog(e.target.checked)}
+                                className="mr-2"
+                              />
+                              Lưu nguyên liệu vào danh mục
+                            </label>
+                          )}
                         </div>
                       )}
                   </div>
                 )}
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {selectedIngredients.map((ing, index) => (
-                    <span key={index} className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-sm">
-                      {ing.name}
+                  {formData.ingredients.map((ing, index) => (
+                    <span
+                      key={ing.productID || `custom-${index}`}
+                      className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-sm"
+                    >
+                      {ing.productName} {ing.isCustom && "(Tùy chỉnh)"}
                       <button
                         type="button"
                         className="ml-1 text-red-500 hover:text-red-700"
                         onClick={() => {
-                          setSelectedIngredients(selectedIngredients.filter(item => item.id !== ing.id));
-                          setFormData(prev => ({
+                          setFormData((prev) => ({
                             ...prev,
-                            ingredient_ids: prev.ingredient_ids.filter(id => id !== ing.id)
+                            ingredients: prev.ingredients.filter(
+                              (item) => item.productID !== ing.productID || item.isCustom !== ing.isCustom
+                            ),
                           }));
                         }}
                       >
@@ -497,10 +562,7 @@ const Recipes = () => {
                   type="button"
                   onClick={() => {
                     setIsAddModalOpen(false);
-                    setSearchTerm("");
-                    setFilteredIngredients([]);
-                    setSelectedIngredients([]);
-                    setMessage(""); // Clear message when closing add modal
+                    resetForm();
                   }}
                   className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-1.5 rounded-lg"
                 >
@@ -523,10 +585,10 @@ const Recipes = () => {
       {/* Details Modal */}
       {isDetailsModalOpen && selectedRecipe && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-md flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl flex">
+          <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl flex max-h-[90vh] overflow-y-auto">
             <div className="w-1/2">
               <img
-                src={selectedRecipe.image} // Dùng trực tiếp URL ảnh
+                src={selectedRecipe.image}
                 alt={selectedRecipe.title}
                 className="w-full h-[500px] object-cover rounded"
                 onError={(e) => {
@@ -537,7 +599,7 @@ const Recipes = () => {
             <div className="w-1/2 pl-8">
               <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-semibold">{selectedRecipe.title}</h2>
-                {isAdmin && (
+                {isAdmin === 1 && (
                   <div className="flex gap-3">
                     <button
                       onClick={handleEdit}
@@ -559,14 +621,10 @@ const Recipes = () => {
               <div className="flex flex-wrap gap-3 mt-3">
                 {selectedRecipe.ingredients.map((ing, index) => (
                   <span
-                    key={index}
-                    className={`px-3 py-1 rounded text-base ${
-                      ing.available ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                    }`}
+                    key={ing.productID || `custom-${index}`}
+                    className="px-3 py-1 rounded text-base bg-gray-100 text-gray-600"
                   >
-                    {ing.name}
-                    {/* Nếu có quantity, hiển thị ở đây */}
-                    {/* {ing.quantity && ` (${ing.quantity})`} */}
+                    {ing.productName} {ing.isCustom && "(Tùy chỉnh)"}
                   </span>
                 ))}
               </div>
