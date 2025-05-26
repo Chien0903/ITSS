@@ -4,8 +4,8 @@ import { Link } from "react-router-dom";
 import api from "../api";
 
 const user = JSON.parse(localStorage.getItem("user"));
-const isAdmin = user && user.role === "admin";
-
+const isAdmin = user && user.role === "Admin";
+console.log(isAdmin)
 const Recipes = () => {
   const [recipes, setRecipes] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
