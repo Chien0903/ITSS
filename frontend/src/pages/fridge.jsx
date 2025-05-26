@@ -173,16 +173,10 @@ const Fridge = () => {
   const handleUpdateItem = async () => {
     setError("");
 
-    // Kiểm tra các trường bắt buộc cho cập nhật
-    // Cần đảm bảo editingItem tồn tại
     if (!editingItem || !newItem.quantity || !newItem.expiredDate || !newItem.location) {
       setError("Vui lòng điền đầy đủ các trường bắt buộc (Số lượng, Ngày hết hạn, Vị trí) hoặc không có sản phẩm nào được chọn.");
       return;
     }
-
-    // Payload cho việc cập nhật. Chỉ gửi các trường có thể thay đổi
-    // KHÔNG NÊN GỬI productName, unit, category khi update item trong tủ lạnh
-    // vì chúng là định danh sản phẩm. Chỉ gửi các trường có thể thay đổi như số lượng, hạn sử dụng, vị trí.
     const payload = {
       quantity: Number(newItem.quantity),
       expiredDate: newItem.expiredDate,
