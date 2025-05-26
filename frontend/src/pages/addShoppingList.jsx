@@ -100,14 +100,44 @@ const AddShoppingList = () => {
 
   const findOrCreateProduct = async (itemData) => {
     try {
-      const response = await api.get(
-        `/api/products/?search=${encodeURIComponent(itemData.name)}`
+      const response = await api.get(`/api/products/`);
+      console.log(`Total products in catalog: ${response.data.length}`);
+      console.log(`Looking for product: "${itemData.name}"`);
+
+      // Log một vài sản phẩm đầu tiên để debug
+      if (response.data.length > 0) {
+        console.log(
+          "First few products:",
+          response.data.slice(0, 3).map((p) => p.productName)
+        );
+      }
+
+      // Tìm product có tên khớp với itemData.name (case insensitive)
+      // Ưu tiên tìm kiếm chính xác trước, sau đó mới tìm kiếm gần đúng
+      let foundProduct = response.data.find(
+        (product) =>
+          product.productName.toLowerCase() === itemData.name.toLowerCase()
       );
 
-      if (response.data.length > 0) {
-        return response.data[0].productID;
+      if (!foundProduct) {
+        foundProduct = response.data.find((product) =>
+          product.productName
+            .toLowerCase()
+            .includes(itemData.name.toLowerCase())
+        );
+      }
+
+      if (foundProduct) {
+        console.log(
+          `✅ Found product: ${foundProduct.productName} (ID: ${foundProduct.productID})`
+        );
+        return foundProduct.productID;
       } else {
-        console.warn(`Product "${itemData.name}" not found in catalog`);
+        console.warn(`❌ Product "${itemData.name}" not found in catalog`);
+        console.log(
+          "Available products:",
+          response.data.map((p) => p.productName)
+        );
         return null;
       }
     } catch (error) {
@@ -219,15 +249,20 @@ const AddShoppingList = () => {
       const addedItems = [];
       for (const item of listData.items) {
         try {
+          console.log(`Processing item: "${item.name}"`);
           const productId = await findOrCreateProduct(item);
 
           if (productId) {
+            console.log(
+              `Adding item "${item.name}" with productId: ${productId}`
+            );
             const addedItem = await addItemToList(
               createdList.listID,
               productId,
               item.quantity
             );
             addedItems.push(addedItem);
+            console.log(`Successfully added item:`, addedItem);
           } else {
             console.warn(
               `Skipping item "${item.name}" - product not found in catalog`

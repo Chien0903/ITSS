@@ -53,12 +53,12 @@ const ShoppingListDetail = () => {
       setError("");
       const response = await api.get(`/api/shopping-lists/${id}/`);
       console.log("Response:", response.data);
+      console.log("Items với product_details:", response.data.items);
       setList({
         ...response.data.list,
         items: response.data.items || [],
         stats: response.data.stats || {},
       });
-      console.log("List:", list);
     } catch (error) {
       console.error("Error fetching shopping list:", error);
       setError(
@@ -75,7 +75,7 @@ const ShoppingListDetail = () => {
     try {
       setIsUpdating(true);
       await api.patch(`/api/shopping-lists/${id}/items/${itemId}/toggle/`);
-  
+
       // Gọi lại toàn bộ danh sách để cập nhật items + stats
       fetchShoppingListDetail();
     } catch (error) {
@@ -85,8 +85,6 @@ const ShoppingListDetail = () => {
       setIsUpdating(false);
     }
   };
-  
-  
 
   // API: Cập nhật số lượng item
   const updateItemQuantity = async (itemId, quantity) => {
@@ -139,11 +137,15 @@ const ShoppingListDetail = () => {
   // API: Tìm product để thêm item
   const findProduct = async (productName) => {
     try {
-      const response = await api.get(
-        `/api/products/?search=${encodeURIComponent(productName)}`
+      const response = await api.get(`/api/products/`);
+
+      // Tìm product có tên khớp với productName (case insensitive)
+      const foundProduct = response.data.find((product) =>
+        product.productName.toLowerCase().includes(productName.toLowerCase())
       );
-      if (response.data.length > 0) {
-        return response.data[0].productID;
+
+      if (foundProduct) {
+        return foundProduct.productID;
       }
       return null;
     } catch (error) {
@@ -169,24 +171,13 @@ const ShoppingListDetail = () => {
       }
 
       // Thêm item vào shopping list
-      const response = await api.post(`/api/shopping-lists/${id}/items/`, {
+      await api.post(`/api/shopping-lists/${id}/items/`, {
         product: productId,
         quantity: newItem.quantity,
       });
 
-      // Update local state với item mới
-      const newItemData = {
-        ...response.data.data,
-        purchased: response.data.data.status === "purchased",
-        name: newItem.name,
-        category: newItem.category,
-        unit: newItem.unit,
-      };
-
-      setList((prevList) => ({
-        ...prevList,
-        items: [...prevList.items, newItemData],
-      }));
+      // Sau khi thêm thành công, gọi lại API để lấy dữ liệu mới nhất
+      await fetchShoppingListDetail();
 
       // Reset form
       setNewItem({
@@ -349,17 +340,39 @@ const ShoppingListDetail = () => {
     );
   }
 
+  // Map category name từ backend sang frontend category values
+  const mapCategoryNameToValue = (categoryName) => {
+    const categoryMapping = {
+      "Rau củ": "vegetable",
+      "Trái cây": "fruit",
+      Thịt: "meat",
+      "Hải sản": "seafood",
+      "Sữa và trứng": "dairy",
+      "Ngũ cốc": "grain",
+      "Gia vị": "spices",
+      "Thực phẩm đông lạnh": "frozen",
+      Khác: "other",
+    };
+    return categoryMapping[categoryName] || "other";
+  };
+
   // Group items by category - với safe check
   const groupedItems = (list?.items || []).reduce((acc, item) => {
-    const category = item.product_details?.category || item.category || "other";
+    // Lấy category name từ product_details hoặc fallback về "Khác"
+    const categoryName = item.product_details?.category_name || "Khác";
+
+    // Map category name sang frontend value
+    const category = mapCategoryNameToValue(categoryName);
+
     if (!acc[category]) {
       acc[category] = [];
     }
     acc[category].push({
       ...item,
-      name: item.product_details?.productName || item.name,
+      name: item.product_details?.productName || item.name || "Sản phẩm",
       purchased: item.status === "purchased" || item.purchased,
       category: category,
+      unit: item.product_details?.unit || "cái",
     });
     return acc;
   }, {});
@@ -981,7 +994,7 @@ const ShoppingListDetail = () => {
                         </div>
 
                         <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                          {item.unit || "cái"}
+                          {item.product_details?.unit || item.unit || "cái"}
                         </div>
 
                         <div>
