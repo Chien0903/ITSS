@@ -16,10 +16,10 @@ class ProductCatalogView(APIView):
 
     def get(self, request):
         category_id = request.query_params.get('category', None)
+        products = ProductCatalog.objects.filter(isCustom=False)
+
         if category_id:
-            products = ProductCatalog.objects.filter(category_id=category_id)
-        else:
-            products = ProductCatalog.objects.all()
+            products = products.filter(category_id=category_id)
         serializer = ProductCatalogSerializer(products, many=True)
         return Response(serializer.data)
 
@@ -123,7 +123,7 @@ class ProductPriceView(APIView):
                 'message': 'Không tìm thấy sản phẩm'
             }, status=status.HTTP_404_NOT_FOUND)
         
-#Tìm kiếm để thêm vào tủ lạnh
+#Tìm kiếm 
 class ProductCatalogSearchView(APIView):
     permission_classes = [IsAuthenticated]
 
