@@ -191,9 +191,9 @@ const Store = () => {
                           Giá gốc:{" "}
                           {Number(product.original_price).toLocaleString()}đ
                         </span>
-                        <span className="text-sm text-gray-500">
+                        {/* <span className="text-sm text-gray-500">
                           /{product.unit}
-                        </span>
+                        </span> */}
                       </div>
                       {product.discount_amount && (
                         <p className="text-xs text-green-600">
@@ -210,9 +210,9 @@ const Store = () => {
                         ).toLocaleString()}
                         đ
                       </span>
-                      <span className="text-sm text-gray-500">
+                      {/* <span className="text-sm text-gray-500">
                         /{product.unit}
-                      </span>
+                      </span> */}
                     </div>
                   )}
                 </div>
