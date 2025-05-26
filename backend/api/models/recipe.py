@@ -6,6 +6,7 @@ class Recipe(models.Model):
     description = models.TextField()
     instruction = models.TextField()
     isCustom = models.BooleanField(default=False)
-
+    image = models.URLField(blank=True, null=True)
+    
     def __str__(self):
         return self.recipeName

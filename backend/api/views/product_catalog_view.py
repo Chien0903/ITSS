@@ -123,7 +123,7 @@ class ProductPriceView(APIView):
                 'message': 'Không tìm thấy sản phẩm'
             }, status=status.HTTP_404_NOT_FOUND)
         
-#Tìm kiếm để thêm vào tủ lạnh
+#Tìm kiếm 
 class ProductCatalogSearchView(APIView):
     permission_classes = [IsAuthenticated]
 
