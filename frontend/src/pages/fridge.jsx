@@ -30,48 +30,47 @@ const Fridge = () => {
   const [activeTab, setActiveTab] = useState("cool");
   const [groupId, setGroupId] = useState(null); // Bạn có thể lấy group_id từ context hoặc người dùng
   const [newItem, setNewItem] = useState({
-    productName: "", // Đổi từ 'name' sang 'productName' để khớp với backend
-    productID: null, // ID của sản phẩm nếu chọn từ ProductCatalog
+    productName: "",
+    productID: null, // Sẽ lưu ID nếu chọn từ catalog
     quantity: "",
     unit: "",
-    category: "", // Lưu trữ category name
+    categoryName: "",
     expiredDate: "",
     location: "cool",
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [isFromCatalog, setIsFromCatalog] = useState(false); // Theo dõi xem sản phẩm có phải từ catalog không
-  const [editingItem, setEditingItem] = useState(null); // Sử dụng để lưu trữ item đang chỉnh sửa
+  const [searchTermProduct, setSearchTermProduct] = useState(""); // Từ khóa tìm kiếm sản phẩm trong modal
+  const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm sản phẩm
+  const [isFromCatalog, setIsFromCatalog] = useState(false); // Cờ kiểm tra sản phẩm có từ catalog không
+  const [editingItem, setEditingItem] = useState(null);
   const DEBUG = true;
 
-  // Hàm để reset form và trạng thái modal
   const resetNewItemForm = () => {
     setNewItem({
       productName: "",
       productID: null,
       quantity: "",
       unit: "",
-      category: "",
+      categoryName: "",
       expiredDate: "",
       location: "cool",
     });
-    setIsFromCatalog(false);
+    setSearchTermProduct("");
     setSearchResults([]);
-    setError(""); // Xóa lỗi khi đóng modal
-    setEditingItem(null); // Rất quan trọng: Reset editingItem khi đóng/reset form
+    setIsFromCatalog(false);
+    setError("");
+    setEditingItem(null);
   };
 
   const fetchFridgeList = async () => {
     try {
       setIsLoading(true);
       setError("");
-      // Không cần type trong params vì backend lấy hết rồi filter trong code
       const params = groupId ? { group_id: groupId } : {};
       if (DEBUG) console.log("Fetching fridge list with params:", params);
       const response = await api.get("/api/fridge/", { params });
       if (DEBUG) console.log("Fridge data fetched:", response.data);
 
-      // Lọc theo location (activeTab) trên frontend
       const filteredItems = (response.data.items || []).filter(
         (item) => item.location === activeTab
       );
@@ -93,48 +92,68 @@ const Fridge = () => {
     }
   };
 
-  const handleSearchProduct = async (inputValue) => {
-    // Chỉ cho phép tìm kiếm khi không ở chế độ chỉnh sửa
-    if (editingItem) return;
+  // Xử lý tìm kiếm sản phẩm trong catalog
+  const handleSearchProduct = async (e) => {
+    const term = e.target.value;
+    setSearchTermProduct(term);
+    setNewItem({ ...newItem, productName: term, productID: null, unit: "", categoryName: "" }); // Reset productID, unit, category khi gõ mới
+    setIsFromCatalog(false); // Đặt lại cờ khi người dùng gõ tìm kiếm
 
-    setNewItem({ ...newItem, productName: inputValue, productID: null }); // Reset productID khi gõ lại
-    setIsFromCatalog(false); // Mặc định là tự tạo mới khi người dùng gõ
-
-    if (inputValue.length < 2) {
+    if (term.length < 2) {
       setSearchResults([]);
       return;
     }
     try {
       const response = await api.get("/api/products/search/", {
-        params: { query: inputValue },
+        params: { q: term },
       });
-      setSearchResults(response.data.results || []);
+      // Lọc bỏ các sản phẩm đã chọn (nếu có logic tương tự như recipe)
+      // Hiện tại không có selectedProducts list, nên không cần lọc
+      setSearchResults(response.data.map(product => ({
+        productID: product.productID,
+        productName: product.productName,
+        unit: product.unit,
+        categoryName: product.categoryName || "Null"
+      })));
+      
     } catch (err) {
       console.error("Search error:", err);
       setSearchResults([]);
     }
   };
 
+  // Xử lý khi chọn một sản phẩm từ danh sách gợi ý
   const handleSelectSuggestedProduct = (product) => {
-    // Chỉ cho phép chọn gợi ý khi không ở chế độ chỉnh sửa
-    if (editingItem) return;
-
     setNewItem({
       ...newItem,
-      productName: product.productName, // Sử dụng productName từ catalog
-      productID: product.productID, // Lưu ID của sản phẩm catalog
-      category: product.category?.categoryName || "", // Lấy category name từ catalog
-      unit: product.unit || "", // Lấy unit từ catalog
+      productName: product.productName,
+      productID: product.productID,
+      categoryName: product.categoryName,
+      unit: product.unit,
     });
-    setIsFromCatalog(true);
-    setSearchResults([]); // Xóa gợi ý sau khi chọn
+    setIsFromCatalog(true); // Đánh dấu là từ catalog
+    setSearchTermProduct(product.productName); // Giữ giá trị hiển thị trong ô input
+    setSearchResults([]); // Xóa danh sách gợi ý
   };
 
-  const handleAddItem = async () => {
-    setError(""); // Reset lỗi trước khi gửi request
+  // Xử lý khi người dùng muốn thêm một sản phẩm hoàn toàn mới (không có trong catalog)
+  const handleAddNewProductManually = () => {
+    setNewItem({
+      ...newItem,
+      productID: null, // Đảm bảo productID là null để báo hiệu sản phẩm mới
+      productName: searchTermProduct.trim(), // Đặt tên sản phẩm từ searchTermProduct
+      unit: "", // Cho phép người dùng chọn đơn vị
+      categoryName: "", // Cho phép người dùng chọn danh mục
+    });
+    setIsFromCatalog(false); // Đảm bảo đây là sản phẩm tự tạo
+    setSearchResults([]); // Xóa gợi ý
+  };
 
-    // Kiểm tra các trường bắt buộc cho thêm mới
-    if (!newItem.productName || !newItem.quantity || !newItem.unit || !newItem.category || !newItem.expiredDate || !newItem.location) {
+
+  const handleAddItem = async () => {
+    setError("");
+
+    if (!newItem.productName || !newItem.quantity || !newItem.unit || !newItem.categoryName || !newItem.expiredDate || !newItem.location) {
       setError("Vui lòng điền đầy đủ thông tin sản phẩm (Tên, Số lượng, Đơn vị, Danh mục, Ngày hết hạn, Vị trí).");
       return;
     }
@@ -145,31 +164,29 @@ const Fridge = () => {
       expiredDate: newItem.expiredDate,
     };
 
-    if (isFromCatalog) {
-      payload.productID = newItem.productID; // SỬA LỖI TYPO Ở ĐÂY
-      payload.productName = newItem.productName;
+    if (isFromCatalog && newItem.productID) {
+      payload.product_id = newItem.productID;
     } else {
       payload.productName = newItem.productName;
       payload.unit = newItem.unit;
-      payload.category = newItem.category;
+      payload.categoryName = newItem.categoryName;
     }
 
     try {
       const res = await api.post("/api/fridge/", payload);
       if (DEBUG) console.log("Thêm sản phẩm thành công", res.data);
       setIsModalOpen(false);
-      resetNewItemForm(); // Reset form sau khi thêm
-      fetchFridgeList(); // Tải lại danh sách tủ lạnh
+      resetNewItemForm();
+      fetchFridgeList();
     } catch (error) {
       console.error("Lỗi khi thêm sản phẩm:", error);
       setError(
         "Lỗi khi thêm sản phẩm: " +
-          (error.response ? JSON.stringify(error.response.data) : error.message)
+        (error.response ? JSON.stringify(error.response.data) : error.message)
       );
     }
   };
 
-  // Hàm xử lý việc cập nhật sản phẩm
   const handleUpdateItem = async () => {
     setError("");
 
@@ -184,40 +201,35 @@ const Fridge = () => {
     };
 
     try {
-      // Gửi PATCH request đến ID của sản phẩm đang được chỉnh sửa
       const res = await api.patch(`/api/fridge/${editingItem.id}/`, payload);
       if (DEBUG) console.log("Cập nhật sản phẩm thành công", res.data);
       setIsModalOpen(false);
-      resetNewItemForm(); // Reset form và trạng thái editingItem
+      resetNewItemForm();
       fetchFridgeList();
     } catch (error) {
       console.error("Lỗi khi cập nhật sản phẩm:", error);
       setError(
         "Lỗi khi cập nhật sản phẩm: " +
-          (error.response ? JSON.stringify(error.response.data) : error.message)
+        (error.response ? JSON.stringify(error.response.data) : error.message)
       );
     }
   };
 
-  // Hàm này để mở modal chỉnh sửa và điền dữ liệu
   const openEditModal = (item) => {
-    setEditingItem(item); // Lưu item cần chỉnh sửa
-    // Điền dữ liệu của item vào form
-    // Đảm bảo expiredDate có định dạng YYYY-MM-DD
+    setEditingItem(item);
     const formattedExpiredDate = item.expiredDate ? new Date(item.expiredDate).toISOString().split('T')[0] : '';
     setNewItem({
       productName: item.product_name,
-      productID: item.product_id || null, // Lưu product_id nếu có
+      productID: item.product_id || null, // Đảm bảo productID được lấy nếu có
       quantity: item.quantity,
       unit: item.product_unit,
-      category: item.product_category_name || "",
+      categoryName: item.product_category_name || "",
       expiredDate: formattedExpiredDate,
       location: item.location,
     });
-    // Đặt trạng thái isFromCatalog dựa trên product_id
-    // Nếu có product_id tức là sản phẩm này được tạo từ catalog
-    setIsFromCatalog(!!item.product_id);
-    setIsModalOpen(true); // Mở modal
+    setSearchTermProduct(item.product_name); // Đặt searchTermProduct để hiển thị tên sản phẩm
+    setIsFromCatalog(!!item.product_id); // Dựa vào product_id để xác định có phải từ catalog không
+    setIsModalOpen(true);
   };
 
   const deleteItem = async (id) => {
@@ -237,9 +249,13 @@ const Fridge = () => {
     fetchFridgeList();
   }, [groupId, activeTab]);
 
+  const getCategoryColor = (categoryLabel) => {
+    const category = categories.find(cat => cat.label === categoryLabel);
+    return category ? category.color : "#6b7280"; // Màu xám mặc định nếu không tìm thấy
+  };
+
   return (
     <div className="p-6">
-      {/* Hiển thị lỗi ngoài modal nếu modal đóng */}
       {error && !isModalOpen && <p className="text-red-500 mb-4">{error}</p>}
       {isLoading ? (
         <p className="text-gray-500">Đang tải...</p>
@@ -249,7 +265,7 @@ const Fridge = () => {
             <h1 className="text-3xl font-bold">Quản lý tủ lạnh</h1>
             <button
               onClick={() => {
-                resetNewItemForm(); // Reset form khi mở modal thêm mới
+                resetNewItemForm();
                 setIsModalOpen(true);
               }}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
@@ -258,7 +274,6 @@ const Fridge = () => {
             </button>
           </div>
 
-          {/* Modal để thêm/sửa sản phẩm */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-transparent backdrop-blur-md flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
@@ -266,22 +281,19 @@ const Fridge = () => {
                   {editingItem ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}
                 </h2>
                 <div className="space-y-4">
-                  {/* Tên sản phẩm */}
                   <div>
                     <label className="block font-medium text-sm text-gray-700 mb-1">Tên sản phẩm</label>
                     <input
                       type="text"
-                      placeholder="Nhập tên sản phẩm"
-                      value={newItem.productName}
-                      onChange={(e) => handleSearchProduct(e.target.value)}
-                      // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog (khi thêm mới)
-                      // Khi chỉnh sửa, tên sản phẩm không được thay đổi
-                      disabled={!!editingItem || isFromCatalog}
+                      placeholder="Nhập tên sản phẩm hoặc tìm trong catalog"
+                      value={editingItem ? newItem.productName : searchTermProduct} // Sử dụng searchTermProduct khi thêm mới, newItem.productName khi sửa
+                      onChange={handleSearchProduct} // Chỉ gọi search khi thêm mới
+                      disabled={!!editingItem || isFromCatalog} // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
 
-                    {/* Hiển thị gợi ý tìm kiếm nếu KHÔNG đang chỉnh sửa và CHƯA chọn từ catalog */}
-                    {!editingItem && !isFromCatalog && searchResults.length > 0 && (
+                    {/* Hiển thị gợi ý tìm kiếm HOẶC tùy chọn thêm mới nếu không đang chỉnh sửa */}
+                    {!editingItem && searchTermProduct.length > 0 && searchResults.length > 0 && !isFromCatalog && (
                       <ul className="border rounded mt-1 max-h-40 overflow-y-auto bg-white shadow z-10">
                         {searchResults.map((product) => (
                           <li
@@ -289,16 +301,37 @@ const Fridge = () => {
                             className="px-3 py-2 hover:bg-green-100 cursor-pointer"
                             onClick={() => handleSelectSuggestedProduct(product)}
                           >
-                            {product.productName} — {product.unit} ({product.category?.categoryName || 'Không phân loại'})
+                            {product.productName} — {product.unit} ({product.categoryName || 'Không phân loại'})
                           </li>
                         ))}
+                        {/* Tùy chọn "Thêm sản phẩm mới" nếu có searchTermProduct và không tìm thấy sản phẩm khớp hoàn toàn */}
+                        {searchTermProduct.length > 0 &&
+                          !searchResults.some(
+                            (p) => p.productName.toLowerCase() === searchTermProduct.toLowerCase()
+                          ) && (
+                            <li
+                              className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border-t"
+                              onClick={handleAddNewProductManually}
+                            >
+                              Thêm sản phẩm mới: <strong>{searchTermProduct}</strong>
+                            </li>
+                          )}
                       </ul>
+                    )}
+
+                    {/* Hiển thị "Thêm sản phẩm mới" ngay cả khi không có gợi ý nếu có searchTermProduct và không ở chế độ catalog */}
+                    {!editingItem && !isFromCatalog && searchTermProduct.length > 0 && searchResults.length === 0 && (
+                        <div
+                          className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border rounded mt-1 bg-white shadow z-10"
+                          onClick={handleAddNewProductManually}
+                        >
+                          Thêm sản phẩm mới: <strong>{searchTermProduct}</strong>
+                        </div>
                     )}
                   </div>
 
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      {/* Số lượng */}
                       <label className="block font-medium text-sm text-gray-700 mb-1">Số lượng</label>
                       <input
                         type="number"
@@ -310,13 +343,11 @@ const Fridge = () => {
                       />
                     </div>
                     <div className="flex-1">
-                      {/* Đơn vị */}
                       <label className="block font-medium text-sm text-gray-700 mb-1">Đơn vị</label>
                       <select
                         value={newItem.unit || ""}
                         onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                        // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog (khi thêm mới)
-                        disabled={!!editingItem || isFromCatalog}
+                        disabled={!!editingItem || isFromCatalog} // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog
                         className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       >
                         <option value="">Chọn đơn vị</option>
@@ -329,14 +360,12 @@ const Fridge = () => {
                     </div>
                   </div>
 
-                  {/* Danh mục */}
                   <div>
                     <label className="block font-medium text-sm text-gray-700 mb-1">Danh mục</label>
                     <select
-                      value={newItem.category || ""}
-                      onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                      // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog (khi thêm mới)
-                      disabled={!!editingItem || isFromCatalog}
+                      value={newItem.categoryName || ""}
+                      onChange={(e) => setNewItem({ ...newItem, categoryName: e.target.value })}
+                      disabled={!!editingItem || isFromCatalog} // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       <option value="">Chọn danh mục</option>
@@ -348,7 +377,6 @@ const Fridge = () => {
                     </select>
                   </div>
 
-                  {/* Ngày hết hạn */}
                   <div>
                     <label className="block font-medium text-sm text-gray-700 mb-1">Ngày hết hạn</label>
                     <input
@@ -359,7 +387,6 @@ const Fridge = () => {
                     />
                   </div>
 
-                  {/* Vị trí */}
                   <div>
                     <label className="block font-medium text-sm text-gray-700 mb-1">Vị trí</label>
                     <select
@@ -373,14 +400,13 @@ const Fridge = () => {
                   </div>
                 </div>
 
-                {/* Hiển thị lỗi bên trong modal */}
                 {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={() => {
                       setIsModalOpen(false);
-                      resetNewItemForm(); // Reset form sau khi đóng
+                      resetNewItemForm();
                     }}
                     className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg"
                   >
@@ -390,14 +416,14 @@ const Fridge = () => {
                     onClick={editingItem ? handleUpdateItem : handleAddItem}
                     className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
                   >
-                    {editingItem ? "Lưu thay đổi" : "Thêm"} {/* Thay đổi chữ trên nút */}
+                    {editingItem ? "Lưu thay đổi" : "Thêm"}
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-white p-4 rounded shadow">
               <p className="text-sm text-gray-500">Tổng sản phẩm</p>
               <p className="text-2xl font-semibold">{stats.total_products}</p>
@@ -459,7 +485,9 @@ const Fridge = () => {
                   }`}
                 >
                   <h3 className="text-lg font-semibold">{item.product_name || "Sản phẩm"}</h3>
-                  <p className="text-sm text-gray-500">{item.quantity} {item.product_unit}</p>
+                  <p className="text-sm text-gray-500">
+                      {item.quantity} {item.product_unit}
+                  </p>
                   <p className="text-sm mt-2 font-medium">
                     Ngày hết hạn: {new Date(item.expiredDate).toLocaleDateString('vi-VN')}
                   </p>
@@ -472,18 +500,20 @@ const Fridge = () => {
                       <span className="text-green-500">Còn hạn</span>
                     )}
                   </p>
-                  <button
-                    onClick={() => deleteItem(item.id)}
-                    className="mt-2 text-red-500 hover:text-red-700"
-                  >
-                    Xóa
-                  </button>
-                  <button
-                    onClick={() => openEditModal(item)}
-                    className="mt-2 text-blue-500 hover:text-blue-700 px-2 py-1"
-                  >
-                    Sửa
-                  </button>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => openEditModal(item)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm"
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      onClick={() => deleteItem(item.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm"
+                    >
+                      Xóa
+                    </button>
+                  </div>
                 </div>
               ))
             ) : (
