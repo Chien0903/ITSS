@@ -481,26 +481,6 @@ const Recipes = () => {
                     {searchTerm &&
                       !filteredIngredients.some(
                         (ing) => ing.productName.toLowerCase() === searchTerm.toLowerCase()
-                      ) && (
-                        <div className="p-2 border-t">
-                          <div
-                            className="hover:bg-gray-100 cursor-pointer text-blue-500"
-                            onClick={handleAddNewIngredient}
-                          >
-                            Thêm nguyên liệu mới: {searchTerm}
-                          </div>
-                          {isAdmin === 1 && (
-                            <label className="flex items-center mt-2">
-                              <input
-                                type="checkbox"
-                                checked={saveToCatalog}
-                                onChange={(e) => setSaveToCatalog(e.target.checked)}
-                                className="mr-2"
-                              />
-                              Lưu nguyên liệu vào danh mục
-                            </label>
-                          )}
-                        </div>
                       )}
                   </div>
                 )}
