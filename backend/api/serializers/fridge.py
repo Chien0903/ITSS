@@ -11,18 +11,22 @@ class FridgeSerializer(serializers.ModelSerializer):
 class AddToFridgeSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.productName', read_only=True)
     product_unit = serializers.CharField(source='product.unit', read_only=True)
+    product_category_name = serializers.CharField(source='product.category.categoryName', read_only=True, allow_null=True)
+    category_id = serializers.IntegerField(source='product.category.categoryID', read_only=True, allow_null=True)
 
     class Meta:
         model = AddToFridge
         fields = [
             'id',
             'product',
+            'product_name',
+            'product_unit',
+            'product_category_name',
+            'category_id',
             'quantity',
             'expiredDate',
             'location',
-            'product_name',
-            'product_unit'
         ]
 
         # Đảm bảo 'addedAt' vẫn nằm trong 'read_only_fields'
-        read_only_fields = ['id', 'addedAt', 'product_name', 'product_unit']
+        read_only_fields = ['id', 'addedAt', 'product_name', 'product_unit', 'product_category_name', 'category_id']
