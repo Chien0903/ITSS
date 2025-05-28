@@ -105,13 +105,13 @@ class FridgeDetailView(APIView):
         fridge, _ = Fridge.objects.get_or_create(group=group)
 
         # Lấy dữ liệu từ request
-        product_name = request.data.get("productName", "").strip() # Dùng productName thay vì name
+        product_name = request.data.get("productName", "").strip()
         expired_str = request.data.get("expiredDate")
         quantity = request.data.get("quantity")
         location = request.data.get("location")
         unit = request.data.get("unit")
-        category_name = request.data.get("category") # Nhận categoryName từ frontend
-        product_id = request.data.get("productID")  # Nếu chọn từ autocomplete
+        category_id = request.data.get("category_id")  # Nhận category_id từ frontend
+        product_id = request.data.get("product_id")  # Sử dụng product_id thay vì productID
 
         if not product_name or not expired_str or not quantity:
             return Response("Thiếu thông tin bắt buộc (Tên sản phẩm, Ngày hết hạn, Số lượng)", status=400)
@@ -129,10 +129,9 @@ class FridgeDetailView(APIView):
         product_obj = None
         
         if product_id:
-            # Người dùng chọn từ autocomplete, tìm sản phẩm theo productID
+            # Người dùng chọn từ autocomplete, tìm sản phẩm theo product_id
             try:
                 product_obj = ProductCatalog.objects.get(productID=product_id)
-                # Kiểm tra duplicate (Nếu sản phẩm đã có trong tủ lạnh với cùng ProductID)
                 if AddToFridge.objects.filter(fridge=fridge, product=product_obj).exists():
                     return Response("Sản phẩm này đã có trong tủ lạnh của bạn.", status=400)
             except ProductCatalog.DoesNotExist:
@@ -142,7 +141,6 @@ class FridgeDetailView(APIView):
             product_qs = ProductCatalog.objects.filter(productName__iexact=product_name)
             if product_qs.exists():
                 product_obj = product_qs.first()
-                # Kiểm tra duplicate (Nếu sản phẩm đã có trong tủ lạnh với cùng ProductID)
                 if AddToFridge.objects.filter(fridge=fridge, product=product_obj).exists():
                     return Response("Sản phẩm này đã có trong tủ lạnh của bạn.", status=400)
             else:
@@ -152,8 +150,11 @@ class FridgeDetailView(APIView):
                 
                 # Tìm hoặc tạo category
                 category_obj = None
-                if category_name:
-                    category_obj, _ = Categories.objects.get_or_create(categoryName__iexact=category_name, defaults={'categoryName': category_name})
+                if category_id:
+                    try:
+                        category_obj = Categories.objects.get(categoryID=category_id)
+                    except Categories.DoesNotExist:
+                        return Response("Danh mục không tồn tại.", status=400)
 
                 # Tính shelf life từ ngày hết hạn (cho sản phẩm mới)
                 shelf_life = (expired_date - today).days
@@ -163,21 +164,21 @@ class FridgeDetailView(APIView):
                 # Tạo sản phẩm mới trong ProductCatalog
                 product_obj = ProductCatalog.objects.create(
                     productName=product_name,
-                    original_price=0, # Có thể đặt giá trị mặc định hoặc bỏ qua nếu không cần
+                    original_price=0,
                     price=0,
                     discount=0,
                     unit=unit,
                     shelfLife=shelf_life,
-                    isCustom=True, # Đánh dấu là sản phẩm người dùng tự tạo
+                    isCustom=True,
                     category=category_obj,
                 )
 
         # Lưu vào AddToFridge
         add_data = {
-            "product": product_obj.productID, # Sử dụng productID của product_obj
+            "product": product_obj.productID,
             "quantity": quantity,
             "expiredDate": expired_date,
-            "location": location or "cool", # Mặc định là cool nếu không có
+            "location": location or "cool",
         }
 
         serializer = AddToFridgeSerializer(data=add_data)
@@ -207,6 +208,17 @@ class FridgeDetailView(APIView):
             except ValueError:
                 return Response("Định dạng ngày hết hạn không hợp lệ", status=400)
         
+        # Handle category_id update
+        if 'category_id' in request.data:
+            category_id = request.data['category_id']
+            try:
+                category_obj = Categories.objects.get(categoryID=category_id)
+                # Update the product's category
+                item.product.category = category_obj
+                item.product.save()
+            except Categories.DoesNotExist:
+                return Response("Danh mục không tồn tại.", status=400)
+
         serializer = AddToFridgeSerializer(item, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
