@@ -2,18 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from "../api";
 
 const Fridge = () => {
-  const categories = [
-    { value: "vegetable", label: "Rau củ", color: "#10b981" },
-    { value: "fruit", label: "Trái cây", color: "#f59e0b" },
-    { value: "meat", label: "Thịt", color: "#ef4444" },
-    { value: "seafood", label: "Hải sản", color: "#3b82f6" },
-    { value: "dairy", label: "Sữa và trứng", color: "#eab308" },
-    { value: "grain", label: "Ngũ cốc", color: "#f59e0b" },
-    { value: "spices", label: "Gia vị", color: "#8b5cf6" },
-    { value: "frozen", label: "Thực phẩm đông lạnh", color: "#06b6d4" },
-    { value: "other", label: "Khác", color: "#6b7280" },
-  ];
-
+  const [categories, setCategories] = useState([]);
   const units = [
     "kg", "g", "lít", "ml", "cái", "gói", "hộp", "túi", "lon", "chai", "vỉ", "bó", "miếng", "bịch"
   ];
@@ -28,20 +17,20 @@ const Fridge = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("cool");
-  const [groupId, setGroupId] = useState(null); // Bạn có thể lấy group_id từ context hoặc người dùng
+  const [groupId, setGroupId] = useState(null);
   const [newItem, setNewItem] = useState({
     productName: "",
-    productID: null, // Sẽ lưu ID nếu chọn từ catalog
+    productID: null,
     quantity: "",
     unit: "",
-    categoryName: "",
+    categoryID: "",
     expiredDate: "",
     location: "cool",
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchTermProduct, setSearchTermProduct] = useState(""); // Từ khóa tìm kiếm sản phẩm trong modal
-  const [searchResults, setSearchResults] = useState([]); // Kết quả tìm kiếm sản phẩm
-  const [isFromCatalog, setIsFromCatalog] = useState(false); // Cờ kiểm tra sản phẩm có từ catalog không
+  const [searchTermProduct, setSearchTermProduct] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isFromCatalog, setIsFromCatalog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const DEBUG = true;
 
@@ -51,7 +40,7 @@ const Fridge = () => {
       productID: null,
       quantity: "",
       unit: "",
-      categoryName: "",
+      categoryID: "",
       expiredDate: "",
       location: "cool",
     });
@@ -69,12 +58,12 @@ const Fridge = () => {
       const params = groupId ? { group_id: groupId } : {};
       if (DEBUG) console.log("Fetching fridge list with params:", params);
       const response = await api.get("/api/fridge/", { params });
-      if (DEBUG) console.log("Fridge data fetched:", response.data);
+      if (DEBUG) console.log("Fridge data fetched:", JSON.stringify(response.data, null, 2));
 
       const filteredItems = (response.data.items || []).filter(
         (item) => item.location === activeTab
       );
-      setFridgeItems(filteredItems);
+      setFridgeItems(filteredItems); // Use raw items since serializer includes category_id and product_category_name
       setStats(response.data.stats || {
         total_products: 0,
         expired_products: 0,
@@ -92,12 +81,22 @@ const Fridge = () => {
     }
   };
 
-  // Xử lý tìm kiếm sản phẩm trong catalog
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/api/categories");
+      if (DEBUG) console.log("Categories fetched:", JSON.stringify(res.data, null, 2));
+      setCategories(res.data);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh mục:", error);
+      setError("Không thể tải danh mục. Vui lòng thử lại.");
+    }
+  };
+
   const handleSearchProduct = async (e) => {
     const term = e.target.value;
     setSearchTermProduct(term);
-    setNewItem({ ...newItem, productName: term, productID: null, unit: "", categoryName: "" }); // Reset productID, unit, category khi gõ mới
-    setIsFromCatalog(false); // Đặt lại cờ khi người dùng gõ tìm kiếm
+    setNewItem({ ...newItem, productName: term, productID: null, unit: "", categoryID: "" });
+    setIsFromCatalog(false);
 
     if (term.length < 2) {
       setSearchResults([]);
@@ -107,53 +106,58 @@ const Fridge = () => {
       const response = await api.get("/api/products/search/", {
         params: { q: term },
       });
-      // Lọc bỏ các sản phẩm đã chọn (nếu có logic tương tự như recipe)
-      // Hiện tại không có selectedProducts list, nên không cần lọc
-      setSearchResults(response.data.map(product => ({
-        productID: product.productID,
-        productName: product.productName,
-        unit: product.unit,
-        categoryName: product.categoryName || "Null"
-      })));
-      
+      if (DEBUG) console.log("Search results:", JSON.stringify(response.data, null, 2));
+      setSearchResults(
+        response.data.map((product) => ({
+          productID: product.productID,
+          productName: product.productName,
+          unit: product.unit,
+          categoryID: product.categoryID || "",
+          categoryName: product.categoryName || "Không phân loại",
+        }))
+      );
     } catch (err) {
       console.error("Search error:", err);
       setSearchResults([]);
     }
   };
 
-  // Xử lý khi chọn một sản phẩm từ danh sách gợi ý
   const handleSelectSuggestedProduct = (product) => {
     setNewItem({
       ...newItem,
       productName: product.productName,
       productID: product.productID,
-      categoryName: product.categoryName,
+      categoryID: product.categoryID || "",
       unit: product.unit,
     });
-    setIsFromCatalog(true); // Đánh dấu là từ catalog
-    setSearchTermProduct(product.productName); // Giữ giá trị hiển thị trong ô input
-    setSearchResults([]); // Xóa danh sách gợi ý
+    setIsFromCatalog(true);
+    setSearchTermProduct(product.productName);
+    setSearchResults([]);
   };
 
-  // Xử lý khi người dùng muốn thêm một sản phẩm hoàn toàn mới (không có trong catalog)
   const handleAddNewProductManually = () => {
     setNewItem({
       ...newItem,
-      productID: null, // Đảm bảo productID là null để báo hiệu sản phẩm mới
-      productName: searchTermProduct.trim(), // Đặt tên sản phẩm từ searchTermProduct
-      unit: "", // Cho phép người dùng chọn đơn vị
-      categoryName: "", // Cho phép người dùng chọn danh mục
+      productID: null,
+      productName: searchTermProduct.trim(),
+      unit: "",
+      categoryID: "",
     });
-    setIsFromCatalog(false); // Đảm bảo đây là sản phẩm tự tạo
-    setSearchResults([]); // Xóa gợi ý
+    setIsFromCatalog(false);
+    setSearchResults([]);
   };
-
 
   const handleAddItem = async () => {
     setError("");
 
-    if (!newItem.productName || !newItem.quantity || !newItem.unit || !newItem.categoryName || !newItem.expiredDate || !newItem.location) {
+    if (
+      !newItem.productName ||
+      !newItem.quantity ||
+      !newItem.unit ||
+      !newItem.categoryID ||
+      !newItem.expiredDate ||
+      !newItem.location
+    ) {
       setError("Vui lòng điền đầy đủ thông tin sản phẩm (Tên, Số lượng, Đơn vị, Danh mục, Ngày hết hạn, Vị trí).");
       return;
     }
@@ -165,16 +169,20 @@ const Fridge = () => {
     };
 
     if (isFromCatalog && newItem.productID) {
-      payload.product_id = newItem.productID;
+      payload.productName = newItem.productName;
+      payload.unit = newItem.unit;
+      payload.category_id = newItem.categoryID;
     } else {
       payload.productName = newItem.productName;
       payload.unit = newItem.unit;
-      payload.categoryName = newItem.categoryName;
+      payload.category_id = newItem.categoryID;
     }
+
+    if (DEBUG) console.log("Adding item with payload:", JSON.stringify(payload, null, 2));
 
     try {
       const res = await api.post("/api/fridge/", payload);
-      if (DEBUG) console.log("Thêm sản phẩm thành công", res.data);
+      if (DEBUG) console.log("Thêm sản phẩm thành công:", JSON.stringify(res.data, null, 2));
       setIsModalOpen(false);
       resetNewItemForm();
       fetchFridgeList();
@@ -194,15 +202,19 @@ const Fridge = () => {
       setError("Vui lòng điền đầy đủ các trường bắt buộc (Số lượng, Ngày hết hạn, Vị trí) hoặc không có sản phẩm nào được chọn.");
       return;
     }
+
     const payload = {
       quantity: Number(newItem.quantity),
       expiredDate: newItem.expiredDate,
       location: newItem.location,
+      category_id: newItem.categoryID,
     };
+
+    if (DEBUG) console.log("Updating item with payload:", JSON.stringify(payload, null, 2));
 
     try {
       const res = await api.patch(`/api/fridge/${editingItem.id}/`, payload);
-      if (DEBUG) console.log("Cập nhật sản phẩm thành công", res.data);
+      if (DEBUG) console.log("Cập nhật sản phẩm thành công:", JSON.stringify(res.data, null, 2));
       setIsModalOpen(false);
       resetNewItemForm();
       fetchFridgeList();
@@ -217,18 +229,21 @@ const Fridge = () => {
 
   const openEditModal = (item) => {
     setEditingItem(item);
-    const formattedExpiredDate = item.expiredDate ? new Date(item.expiredDate).toISOString().split('T')[0] : '';
+    const formattedExpiredDate = item.expiredDate
+      ? new Date(item.expiredDate).toISOString().split("T")[0]
+      : "";
+    if (DEBUG) console.log("Opening edit modal for item:", JSON.stringify(item, null, 2));
     setNewItem({
       productName: item.product_name,
-      productID: item.product_id || null, // Đảm bảo productID được lấy nếu có
+      productID: item.product || null,
       quantity: item.quantity,
       unit: item.product_unit,
-      categoryName: item.product_category_name || "",
+      categoryID: item.category_id || "",
       expiredDate: formattedExpiredDate,
       location: item.location,
     });
-    setSearchTermProduct(item.product_name); // Đặt searchTermProduct để hiển thị tên sản phẩm
-    setIsFromCatalog(!!item.product_id); // Dựa vào product_id để xác định có phải từ catalog không
+    setSearchTermProduct(item.product_name);
+    setIsFromCatalog(!!item.product);
     setIsModalOpen(true);
   };
 
@@ -246,13 +261,9 @@ const Fridge = () => {
   };
 
   useEffect(() => {
+    fetchCategories();
     fetchFridgeList();
   }, [groupId, activeTab]);
-
-  const getCategoryColor = (categoryLabel) => {
-    const category = categories.find(cat => cat.label === categoryLabel);
-    return category ? category.color : "#6b7280"; // Màu xám mặc định nếu không tìm thấy
-  };
 
   return (
     <div className="p-6">
@@ -286,13 +297,12 @@ const Fridge = () => {
                     <input
                       type="text"
                       placeholder="Nhập tên sản phẩm hoặc tìm trong catalog"
-                      value={editingItem ? newItem.productName : searchTermProduct} // Sử dụng searchTermProduct khi thêm mới, newItem.productName khi sửa
-                      onChange={handleSearchProduct} // Chỉ gọi search khi thêm mới
-                      disabled={!!editingItem || isFromCatalog} // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog
+                      value={editingItem ? newItem.productName : searchTermProduct}
+                      onChange={handleSearchProduct}
+                      disabled={!!editingItem || isFromCatalog}
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
 
-                    {/* Hiển thị gợi ý tìm kiếm HOẶC tùy chọn thêm mới nếu không đang chỉnh sửa */}
                     {!editingItem && searchTermProduct.length > 0 && searchResults.length > 0 && !isFromCatalog && (
                       <ul className="border rounded mt-1 max-h-40 overflow-y-auto bg-white shadow z-10">
                         {searchResults.map((product) => (
@@ -304,7 +314,6 @@ const Fridge = () => {
                             {product.productName} — {product.unit} ({product.categoryName || 'Không phân loại'})
                           </li>
                         ))}
-                        {/* Tùy chọn "Thêm sản phẩm mới" nếu có searchTermProduct và không tìm thấy sản phẩm khớp hoàn toàn */}
                         {searchTermProduct.length > 0 &&
                           !searchResults.some(
                             (p) => p.productName.toLowerCase() === searchTermProduct.toLowerCase()
@@ -319,14 +328,13 @@ const Fridge = () => {
                       </ul>
                     )}
 
-                    {/* Hiển thị "Thêm sản phẩm mới" ngay cả khi không có gợi ý nếu có searchTermProduct và không ở chế độ catalog */}
                     {!editingItem && !isFromCatalog && searchTermProduct.length > 0 && searchResults.length === 0 && (
-                        <div
-                          className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border rounded mt-1 bg-white shadow z-10"
-                          onClick={handleAddNewProductManually}
-                        >
-                          Thêm sản phẩm mới: <strong>{searchTermProduct}</strong>
-                        </div>
+                      <div
+                        className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border rounded mt-1 bg-white shadow z-10"
+                        onClick={handleAddNewProductManually}
+                      >
+                        Thêm sản phẩm mới: <strong>{searchTermProduct}</strong>
+                      </div>
                     )}
                   </div>
 
@@ -347,7 +355,7 @@ const Fridge = () => {
                       <select
                         value={newItem.unit || ""}
                         onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
-                        disabled={!!editingItem || isFromCatalog} // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog
+                        disabled={!!editingItem || isFromCatalog}
                         className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       >
                         <option value="">Chọn đơn vị</option>
@@ -363,15 +371,15 @@ const Fridge = () => {
                   <div>
                     <label className="block font-medium text-sm text-gray-700 mb-1">Danh mục</label>
                     <select
-                      value={newItem.categoryName || ""}
-                      onChange={(e) => setNewItem({ ...newItem, categoryName: e.target.value })}
-                      disabled={!!editingItem || isFromCatalog} // Vô hiệu hóa khi chỉnh sửa HOẶC đã chọn từ catalog
+                      value={newItem.categoryID || ""}
+                      onChange={(e) => setNewItem({ ...newItem, categoryID: e.target.value })}
+                      disabled={isFromCatalog}
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       <option value="">Chọn danh mục</option>
                       {categories.map((cat) => (
-                        <option key={cat.value} value={cat.label}>
-                          {cat.label}
+                        <option key={cat.categoryID} value={cat.categoryID}>
+                          {cat.categoryName}
                         </option>
                       ))}
                     </select>
@@ -486,7 +494,7 @@ const Fridge = () => {
                 >
                   <h3 className="text-lg font-semibold">{item.product_name || "Sản phẩm"}</h3>
                   <p className="text-sm text-gray-500">
-                      {item.quantity} {item.product_unit}
+                    {item.quantity} {item.product_unit}
                   </p>
                   <p className="text-sm mt-2 font-medium">
                     Ngày hết hạn: {new Date(item.expiredDate).toLocaleDateString('vi-VN')}
@@ -499,6 +507,9 @@ const Fridge = () => {
                     ) : (
                       <span className="text-green-500">Còn hạn</span>
                     )}
+                  </p>
+                  <p className="text-sm mt-1 font-medium">
+                    Danh mục: {item.product_category_name || "Không phân loại"}
                   </p>
                   <div className="mt-3 flex gap-2">
                     <button
