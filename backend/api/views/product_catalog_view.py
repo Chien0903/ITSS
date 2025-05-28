@@ -141,6 +141,7 @@ class ProductCatalogSearchView(APIView):
                 'shelfLife': product.shelfLife,
                 'isCustom': product.isCustom,
                 'categoryName': product.category.categoryName if product.category else None,
+                'categoryID': product.category.categoryID,
                 'image': product.image,
             })
 
