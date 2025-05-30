@@ -47,7 +47,10 @@ npm install
 ```bash
 npm run dev
 ```
-
+3. Test 
+```bash
+pip install pytest pytest-django
+```
 ## Truy cập ứng dụng
 
 - Backend API: http://localhost:8000
