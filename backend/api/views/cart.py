@@ -13,6 +13,7 @@ class CartView(APIView):
         serializer = CartSerializer(cart)
         return Response(serializer.data)
 
+
 class AddToCartView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
