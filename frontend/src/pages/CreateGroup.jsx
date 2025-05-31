@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -27,7 +21,8 @@ const CreateGroup = () => {
     try {
       const response = await api.get("/api/users/");
       setUsers(response.data);
-    } catch (err) {
+    } catch (error) {
+      console.error("Error fetching users:", error);
       setError("Không thể tải danh sách người dùng");
     }
   };
