@@ -42,6 +42,7 @@ function App() {
         <Route path="add-shopping-list" element={<AddShoppingList />} />
         <Route path="shopping-list/:id" element={<ShoppingListDetail />} />
         <Route path="add-new-planning" element={<AddNewPlanning />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
