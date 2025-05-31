@@ -14,9 +14,11 @@ import Profile from "./pages/Profile";
 import SelectGroup from "./pages/SelectGroup";
 import CreateGroup from "./pages/CreateGroup";
 import AddProduct from "./pages/AddProduct";
+import EditProduct from "./pages/EditProduct";
 import Cart from "./pages/Cart";
 import AddShoppingList from "./pages/addShoppingList";
 import ShoppingListDetail from "./pages/ShoppingListDetail";
+import AddNewPlanning from "./pages/AddNewPlanning";
 
 function Logout() {
   localStorage.clear();
@@ -32,12 +34,14 @@ function App() {
         <Route path="store" element={<Store />} />
         <Route path="fridge" element={<Fridge />} />
         <Route path="recipes" element={<Recipes />} />
-        <Route path="plan" element={<Plans />} />
+        <Route path="meal-planning" element={<Plans />} />
         <Route path="statistics" element={<Statistics />} />
         <Route path="/add-product" element={<AddProduct />} />
+        <Route path="/edit-product/:id" element={<EditProduct />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="add-shopping-list" element={<AddShoppingList />} />
         <Route path="shopping-list/:id" element={<ShoppingListDetail />} />
+        <Route path="add-new-planning" element={<AddNewPlanning />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
