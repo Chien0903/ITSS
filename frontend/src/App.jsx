@@ -12,7 +12,6 @@ import Plans from "./pages/plan";
 import Statistics from "./pages/statistics";
 import Profile from "./pages/Profile";
 import SelectGroup from "./pages/SelectGroup";
-import CreateGroup from "./pages/CreateGroup";
 import AddProduct from "./pages/AddProduct";
 import EditProduct from "./pages/EditProduct";
 import Cart from "./pages/Cart";
@@ -47,7 +46,6 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/select-group" element={<SelectGroup />} />
-      <Route path="/create-group" element={<CreateGroup />} />
       <Route path="/logout" element={<Logout />} />
     </Routes>
   );
