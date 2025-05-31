@@ -30,7 +30,11 @@ const Register = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const { confirmPassword, acceptTerms, ...registerData } = values;
+      const {
+        confirmPassword: _confirmPassword,
+        acceptTerms: _acceptTerms,
+        ...registerData
+      } = values;
 
       const response = await api.post("/api/register/", registerData);
 
