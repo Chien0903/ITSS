@@ -82,18 +82,18 @@ class MealPlanCreateSerializer(serializers.Serializer):
                     user_id=validated_data['user']
                 )
                 print(f"Created meal plan: {meal_plan}")
-                meal_plans.append(meal_plan)
-                
-                # Nếu có recipeId, tạo relation trong Have table
-                recipe_id = meal_data.get('recipeId')
-                if recipe_id:
-                    try:
-                        from ..models.recipe import Recipe
-                        recipe = Recipe.objects.get(recipeID=recipe_id)
-                        Have.objects.create(plan=meal_plan, recipe=recipe)
-                        print(f"Created Have relation: meal_plan={meal_plan.planID}, recipe={recipe_id}")
-                    except Recipe.DoesNotExist:
-                        print(f"Warning: Recipe {recipe_id} not found")
+            meal_plans.append(meal_plan)
+            
+            # Nếu có recipeId, tạo relation trong Have table
+            recipe_id = meal_data.get('recipeId')
+            if recipe_id:
+                try:
+                    from ..models.recipe import Recipe
+                    recipe = Recipe.objects.get(recipeID=recipe_id)
+                    Have.objects.create(plan=meal_plan, recipe=recipe)
+                    print(f"Created Have relation: meal_plan={meal_plan.planID}, recipe={recipe_id}")
+                except Recipe.DoesNotExist:
+                    print(f"Warning: Recipe {recipe_id} not found")
         
         print(f"Total created: {len(meal_plans)} meal plans")
         return meal_plans

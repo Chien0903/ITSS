@@ -30,16 +30,26 @@ class CreateGroupView(APIView):
             # Thêm người tạo vào nhóm
             In.objects.create(user=request.user, group=group)
             
-            # Thêm các thành viên khác nếu có
+            # Thêm các thành viên khác nếu có (loại trừ người tạo để tránh trùng lặp)
             member_ids = request.data.get('members', [])
             for member_id in member_ids:
+                # Bỏ qua nếu là người tạo nhóm (đã được thêm ở trên)
+                if member_id == request.user.id:
+                    continue
+                    
                 try:
                     user = User.objects.get(id=member_id)
-                    In.objects.create(user=user, group=group)
+                    # Kiểm tra xem user đã tồn tại trong nhóm chưa
+                    if not In.objects.filter(user=user, group=group).exists():
+                        In.objects.create(user=user, group=group)
                 except User.DoesNotExist:
                     continue
             
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Refresh group để lấy thông tin members mới nhất
+            group.refresh_from_db()
+            response_data = GroupSerializer(group).data
+            
+            return Response(response_data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class JoinGroupView(APIView):
