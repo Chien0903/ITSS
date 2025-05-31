@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from backend.api.models.user import User
+from ..models.user import User
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
