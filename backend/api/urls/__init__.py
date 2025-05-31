@@ -33,6 +33,8 @@ urlpatterns = [
     path('shopping-lists/', include('api.urls.shopping_list_urls')),
     #Fridge
     path('fridge/', include('api.urls.fridge')),
+    # Meal Plan URLs
+    path('meal-plans/', include('api.urls.meal_plan')),
     #Recipe + Ingredients
     path('', include(router.urls))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
