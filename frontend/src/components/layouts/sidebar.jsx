@@ -31,7 +31,7 @@ const Sidebar = () => (
           <NavItem to="/store" icon="🧺" label="Cửa Hàng Thực Phẩm" />
           <NavItem to="/fridge" icon="🧊" label="Quản Lý Tủ Lạnh" />
           <NavItem to="/recipes" icon="📋" label="Công Thức Nấu Ăn" />
-          <NavItem to="/plan" icon="🗓️" label="Lập Kế Hoạch Bữa Ăn" />
+          <NavItem to="/meal-planning" icon="🗓️" label="Lập Kế Hoạch Bữa Ăn" />
           <NavItem to="/statistics" icon="📊" label="Thống Kê" />
         </nav>
       </div>

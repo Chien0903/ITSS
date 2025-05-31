@@ -1,7 +1,7 @@
 // Store.jsx - đã cập nhật thêm 2 nút + routing + responsive cho admin
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Plus } from "lucide-react";
+import { ShoppingCart, Plus, Eye, Edit, Trash2 } from "lucide-react";
 import api from "../api";
 import { Link } from "react-router-dom";
 
@@ -16,6 +16,9 @@ const Store = () => {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [filterTab, setFilterTab] = useState("all");
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showProductDetail, setShowProductDetail] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,6 +53,32 @@ const Store = () => {
     } finally {
       setAddingToCart((prev) => ({ ...prev, [productId]: false }));
     }
+  };
+
+  const handleViewProduct = (product) => {
+    setSelectedProduct(product);
+    setShowProductDetail(true);
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) return;
+
+    setDeletingProduct(productId);
+    try {
+      await api.delete(`/api/products/${productId}/`);
+      setProducts(products.filter((p) => p.productID !== productId));
+      alert("Đã xóa sản phẩm thành công!");
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      alert("Có lỗi xảy ra khi xóa sản phẩm!");
+    } finally {
+      setDeletingProduct(null);
+    }
+  };
+
+  const closeProductDetail = () => {
+    setShowProductDetail(false);
+    setSelectedProduct(null);
   };
 
   const filteredProducts = products
@@ -217,19 +246,234 @@ const Store = () => {
                   )}
                 </div>
 
-                <button
-                  className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white py-2 rounded flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                  onClick={() => handleAddToCart(product)}
-                  disabled={addingToCart[product.productID]}
-                >
-                  <ShoppingCart size={16} />
-                  {addingToCart[product.productID]
-                    ? "Đang thêm..."
-                    : "Thêm vào giỏ"}
-                </button>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                    onClick={() => handleAddToCart(product)}
+                    disabled={addingToCart[product.productID]}
+                  >
+                    <ShoppingCart size={16} />
+                    {addingToCart[product.productID]
+                      ? "Đang thêm..."
+                      : "Thêm vào giỏ"}
+                  </button>
+
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded"
+                    onClick={() => handleViewProduct(product)}
+                    title="Xem chi tiết"
+                  >
+                    <Eye size={16} />
+                  </button>
+
+                  {isAdmin && (
+                    <>
+                      <Link
+                        to={`/edit-product/${product.productID}`}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded flex items-center justify-center"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit size={16} />
+                      </Link>
+
+                      <button
+                        className="bg-red-500 hover:bg-red-600 text-white p-2 rounded disabled:opacity-50"
+                        onClick={() => handleDeleteProduct(product.productID)}
+                        disabled={deletingProduct === product.productID}
+                        title="Xóa sản phẩm"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Product Detail Modal */}
+      {showProductDetail && selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold">
+                  {selectedProduct.productName}
+                </h2>
+                <button
+                  onClick={closeProductDetail}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Product Image */}
+              <div className="mb-6">
+                <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                  {selectedProduct.image ? (
+                    <img
+                      src={selectedProduct.image}
+                      alt={selectedProduct.productName}
+                      className="object-contain h-full w-full"
+                    />
+                  ) : (
+                    <div className="text-gray-400 text-6xl">📦</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Product Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">
+                    Thông tin sản phẩm
+                  </h3>
+
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-gray-600">Tên sản phẩm:</span>
+                      <p className="font-medium">
+                        {selectedProduct.productName}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-gray-600">Danh mục:</span>
+                      <p className="font-medium">
+                        {selectedProduct.category_name || "Chưa phân loại"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-gray-600">Đơn vị:</span>
+                      <p className="font-medium">{selectedProduct.unit}</p>
+                    </div>
+
+                    <div>
+                      <span className="text-gray-600">Hạn sử dụng:</span>
+                      <p className="font-medium">
+                        {selectedProduct.shelfLife} ngày
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-gray-600">Loại sản phẩm:</span>
+                      <p className="font-medium">
+                        {selectedProduct.isCustom
+                          ? "Sản phẩm tùy chỉnh"
+                          : "Sản phẩm hệ thống"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Giá cả</h3>
+
+                  <div className="space-y-3">
+                    {selectedProduct.discount > 0 ? (
+                      <>
+                        <div>
+                          <span className="text-gray-600">Giá hiện tại:</span>
+                          <p className="text-2xl font-bold text-red-600">
+                            {Number(selectedProduct.price).toLocaleString()}đ
+                          </p>
+                        </div>
+
+                        <div>
+                          <span className="text-gray-600">Giá gốc:</span>
+                          <p className="text-lg line-through text-gray-400">
+                            {Number(
+                              selectedProduct.original_price
+                            ).toLocaleString()}
+                            đ
+                          </p>
+                        </div>
+
+                        <div>
+                          <span className="text-gray-600">Giảm giá:</span>
+                          <p className="text-lg font-semibold text-green-600">
+                            {Math.round(selectedProduct.discount)}% (
+                            {Number(
+                              selectedProduct.discount_amount || 0
+                            ).toLocaleString()}
+                            đ)
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div>
+                        <span className="text-gray-600">Giá:</span>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {Number(
+                            selectedProduct.price ||
+                              selectedProduct.original_price
+                          ).toLocaleString()}
+                          đ
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              {selectedProduct.description && (
+                <div className="mt-6">
+                  <h3 className="font-semibold text-lg mb-3">Mô tả</h3>
+                  <p className="text-gray-700 leading-relaxed">
+                    {selectedProduct.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 mt-6 pt-6 border-t">
+                <button
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-medium"
+                  onClick={() => {
+                    handleAddToCart(selectedProduct);
+                    closeProductDetail();
+                  }}
+                  disabled={addingToCart[selectedProduct.productID]}
+                >
+                  <ShoppingCart size={20} />
+                  {addingToCart[selectedProduct.productID]
+                    ? "Đang thêm..."
+                    : "Thêm vào giỏ hàng"}
+                </button>
+
+                {isAdmin && (
+                  <>
+                    <Link
+                      to={`/edit-product/${selectedProduct.productID}`}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-6 rounded-lg flex items-center justify-center gap-2 font-medium"
+                      onClick={closeProductDetail}
+                    >
+                      <Edit size={20} />
+                      Chỉnh sửa
+                    </Link>
+
+                    <button
+                      className="bg-red-500 hover:bg-red-600 text-white py-3 px-6 rounded-lg flex items-center justify-center gap-2 font-medium"
+                      onClick={() => {
+                        handleDeleteProduct(selectedProduct.productID);
+                        closeProductDetail();
+                      }}
+                      disabled={deletingProduct === selectedProduct.productID}
+                    >
+                      <Trash2 size={20} />
+                      Xóa
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
