@@ -41,7 +41,9 @@ const Recipes = () => {
           liked: false,
           ingredients: recipe.isingredient_set.map((ing) => ({
             productID: ing.product ? ing.product.productID : null,
-            productName: ing.product ? ing.product.productName : ing.ingredientName,
+            productName: ing.product
+              ? ing.product.productName
+              : ing.ingredientName,
             unit: ing.product ? ing.product.unit : "unit",
             isCustom: !ing.product,
           })),
@@ -66,7 +68,9 @@ const Recipes = () => {
     }
     const lowerCaseTerm = term.toLowerCase();
     const filtered = recipes.filter((recipe) => {
-      const matchesRecipeName = recipe.title.toLowerCase().includes(lowerCaseTerm);
+      const matchesRecipeName = recipe.title
+        .toLowerCase()
+        .includes(lowerCaseTerm);
       const matchesIngredients = recipe.ingredients.some((ing) =>
         ing.productName.toLowerCase().includes(lowerCaseTerm)
       );
@@ -195,11 +199,18 @@ const Recipes = () => {
 
   // Handle delete
   const handleDelete = async () => {
-    if (!window.confirm(`Bạn có chắc muốn xóa công thức "${selectedRecipe.title}"?`)) return;
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn xóa công thức "${selectedRecipe.title}"?`
+      )
+    )
+      return;
     try {
       await api.delete(`/api/recipes/${selectedRecipe.id}/`);
       setRecipes(recipes.filter((recipe) => recipe.id !== selectedRecipe.id));
-      setFilteredRecipes(filteredRecipes.filter((recipe) => recipe.id !== selectedRecipe.id));
+      setFilteredRecipes(
+        filteredRecipes.filter((recipe) => recipe.id !== selectedRecipe.id)
+      );
       setIsDetailsModalOpen(false);
       setMessage("Xóa công thức thành công");
     } catch (err) {
@@ -209,103 +220,131 @@ const Recipes = () => {
   };
 
   // Handle submit
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!formData.recipeName || !formData.description || !formData.instruction) {
-    setMessage("Vui lòng điền đầy đủ tên món ăn, mô tả và hướng dẫn.");
-    return;
-  }
-  setLoading(true);
-  setMessage("");
-
-  const formDataToSend = new FormData();
-  formDataToSend.append("recipeName", formData.recipeName);
-  formDataToSend.append("description", formData.description);
-  formDataToSend.append("instruction", formData.instruction);
-  formDataToSend.append("isCustom", formData.isCustom || true);
-  if (formData.image) {
-    formDataToSend.append("image_upload", formData.image);
-  }
-  const ingredientData = formData.ingredients.map((ing) => ({
-    product_id: ing.isCustom ? null : ing.productID,
-    ingredientName: ing.isCustom ? ing.productName : null,
-  }));
-  ingredientData.forEach((item, index) => {
-    formDataToSend.append(`ingredient_data[${index}][product_id]`, item.product_id ?? '');
-    formDataToSend.append(`ingredient_data[${index}][ingredientName]`, item.ingredientName ?? '');
-  });
-  console.log("Sending ingredient_data:", JSON.stringify(ingredientData, null, 2));
-  const formDataObject = {};
-  for (const [key, value] of formDataToSend.entries()) {
-    formDataObject[key] = value instanceof File ? `[File: ${value.name}]` : value;
-  }
-  console.log("Sent FormData:", JSON.stringify(formDataObject, null, 2));
-
-  try {
-    let response;
-    if (isEditMode && selectedRecipe) {
-      response = await api.put(`/api/recipes/${selectedRecipe.id}/`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setMessage("Cập nhật công thức thành công");
-      setRecipes((prev) =>
-        prev.map((recipe) =>
-          recipe.id === selectedRecipe.id
-            ? {
-                ...recipe,
-                title: formData.recipeName,
-                description: formData.description,
-                instructions: formData.instruction,
-                ingredients: formData.ingredients,
-                image: formData.image ? URL.createObjectURL(formData.image) : recipe.image,
-              }
-            : recipe
-        )
-      );
-      setFilteredRecipes((prev) =>
-        prev.map((recipe) =>
-          recipe.id === selectedRecipe.id
-            ? {
-                ...recipe,
-                title: formData.recipeName,
-                description: formData.description,
-                instructions: formData.instruction,
-                ingredients: formData.ingredients,
-                image: formData.image ? URL.createObjectURL(formData.image) : recipe.image,
-              }
-            : recipe
-        )
-      );
-    } else {
-      response = await api.post("/api/recipes/", formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      setMessage("Thêm công thức thành công");
-      const newRecipe = {
-        id: response.data.recipeID,
-        title: formData.recipeName,
-        description: formData.description,
-        instructions: formData.instruction,
-        image: response.data.image || "/images/default.jpg",
-        tags: formData.recipeName.split(" ").slice(0, 3),
-        liked: false,
-        ingredients: formData.ingredients,
-      };
-      setRecipes((prev) => [...prev, newRecipe]);
-      setFilteredRecipes((prev) => [...prev, newRecipe]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (
+      !formData.recipeName ||
+      !formData.description ||
+      !formData.instruction
+    ) {
+      setMessage("Vui lòng điền đầy đủ tên món ăn, mô tả và hướng dẫn.");
+      return;
     }
-    setIsAddModalOpen(false);
-    resetForm();
-  } catch (err) {
-    const errorMessage = err.response?.data?.detail || JSON.stringify(err.response?.data, null, 2) || "Unknown error";
-    setMessage(`Có lỗi xảy ra khi lưu công thức: ${errorMessage}`);
-    console.error("Error response:", JSON.stringify(err.response?.data, null, 2));
-    console.error("Full error:", err);
-    console.error("Sent FormData:", JSON.stringify(formDataObject, null, 2));
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    setMessage("");
+
+    const formDataToSend = new FormData();
+    formDataToSend.append("recipeName", formData.recipeName);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("instruction", formData.instruction);
+    formDataToSend.append("isCustom", formData.isCustom || true);
+    if (formData.image) {
+      formDataToSend.append("image_upload", formData.image);
+    }
+    const ingredientData = formData.ingredients.map((ing) => ({
+      product_id: ing.isCustom ? null : ing.productID,
+      ingredientName: ing.isCustom ? ing.productName : null,
+    }));
+    ingredientData.forEach((item, index) => {
+      formDataToSend.append(
+        `ingredient_data[${index}][product_id]`,
+        item.product_id ?? ""
+      );
+      formDataToSend.append(
+        `ingredient_data[${index}][ingredientName]`,
+        item.ingredientName ?? ""
+      );
+    });
+    console.log(
+      "Sending ingredient_data:",
+      JSON.stringify(ingredientData, null, 2)
+    );
+    const formDataObject = {};
+    for (const [key, value] of formDataToSend.entries()) {
+      formDataObject[key] =
+        value instanceof File ? `[File: ${value.name}]` : value;
+    }
+    console.log("Sent FormData:", JSON.stringify(formDataObject, null, 2));
+
+    try {
+      let response;
+      if (isEditMode && selectedRecipe) {
+        response = await api.put(
+          `/api/recipes/${selectedRecipe.id}/`,
+          formDataToSend,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+        setMessage("Cập nhật công thức thành công");
+        setRecipes((prev) =>
+          prev.map((recipe) =>
+            recipe.id === selectedRecipe.id
+              ? {
+                  ...recipe,
+                  title: formData.recipeName,
+                  description: formData.description,
+                  instructions: formData.instruction,
+                  ingredients: formData.ingredients,
+                  image: formData.image
+                    ? URL.createObjectURL(formData.image)
+                    : recipe.image,
+                }
+              : recipe
+          )
+        );
+        setFilteredRecipes((prev) =>
+          prev.map((recipe) =>
+            recipe.id === selectedRecipe.id
+              ? {
+                  ...recipe,
+                  title: formData.recipeName,
+                  description: formData.description,
+                  instructions: formData.instruction,
+                  ingredients: formData.ingredients,
+                  image: formData.image
+                    ? URL.createObjectURL(formData.image)
+                    : recipe.image,
+                }
+              : recipe
+          )
+        );
+      } else {
+        response = await api.post("/api/recipes/", formDataToSend, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setMessage("Thêm công thức thành công");
+        const newRecipe = {
+          id: response.data.recipeID,
+          title: formData.recipeName,
+          description: formData.description,
+          instructions: formData.instruction,
+          image: response.data.image || "/images/default.jpg",
+          tags: formData.recipeName.split(" ").slice(0, 3),
+          liked: false,
+          ingredients: formData.ingredients,
+        };
+        setRecipes((prev) => [...prev, newRecipe]);
+        setFilteredRecipes((prev) => [...prev, newRecipe]);
+      }
+      setIsAddModalOpen(false);
+      resetForm();
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.detail ||
+        JSON.stringify(err.response?.data, null, 2) ||
+        "Unknown error";
+      setMessage(`Có lỗi xảy ra khi lưu công thức: ${errorMessage}`);
+      console.error(
+        "Error response:",
+        JSON.stringify(err.response?.data, null, 2)
+      );
+      console.error("Full error:", err);
+      console.error("Sent FormData:", JSON.stringify(formDataObject, null, 2));
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="space-y-3 max-w-4xl mx-auto p-6">
       <div className="flex items-center space-x-4">
@@ -351,7 +390,10 @@ const handleSubmit = async (e) => {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecipes.length > 0 ? (
           filteredRecipes.map((recipe) => (
-            <div key={recipe.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+            <div
+              key={recipe.id}
+              className="bg-white border border-gray-200 rounded-lg shadow-sm p-4"
+            >
               <img
                 src={recipe.image}
                 alt={recipe.title}
@@ -389,7 +431,9 @@ const handleSubmit = async (e) => {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên món ăn *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên món ăn *
+                </label>
                 <input
                   type="text"
                   name="recipeName"
@@ -400,7 +444,9 @@ const handleSubmit = async (e) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mô tả *
+                </label>
                 <textarea
                   name="description"
                   value={formData.description}
@@ -411,7 +457,9 @@ const handleSubmit = async (e) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hướng dẫn *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hướng dẫn *
+                </label>
                 <textarea
                   name="instruction"
                   value={formData.instruction}
@@ -422,7 +470,9 @@ const handleSubmit = async (e) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nguyên liệu</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nguyên liệu
+                </label>
                 <div className="flex gap-4 mb-2">
                   <label className="flex items-center">
                     <input
@@ -448,7 +498,7 @@ const handleSubmit = async (e) => {
                   </label>
                 </div>
                 {ingredientType === "catalog" ? (
-                  <div>
+                  <div className="relative">
                     <input
                       type="text"
                       placeholder="Tìm nguyên liệu..."
@@ -457,16 +507,22 @@ const handleSubmit = async (e) => {
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     {searchTerm && (
-                      <div className="mt-2 max-h-40 overflow-y-auto border rounded bg-white">
-                        {filteredIngredients.map((ingredient) => (
-                          <div
-                            key={ingredient.productID}
-                            className="p-2 hover:bg-gray-100 cursor-pointer"
-                            onClick={() => handleSelectIngredient(ingredient)}
-                          >
-                            {ingredient.productName} ({ingredient.unit})
+                      <div className="absolute top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto border rounded bg-white shadow-lg z-50">
+                        {filteredIngredients.length > 0 ? (
+                          filteredIngredients.map((ingredient) => (
+                            <div
+                              key={ingredient.productID}
+                              className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              onClick={() => handleSelectIngredient(ingredient)}
+                            >
+                              {ingredient.productName} ({ingredient.unit})
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-2 text-gray-500 text-center">
+                            Không tìm thấy nguyên liệu
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>
@@ -501,7 +557,9 @@ const handleSubmit = async (e) => {
                         onClick={() => {
                           setFormData((prev) => ({
                             ...prev,
-                            ingredients: prev.ingredients.filter((_, i) => i !== index),
+                            ingredients: prev.ingredients.filter(
+                              (_, i) => i !== index
+                            ),
                           }));
                         }}
                       >
@@ -512,7 +570,9 @@ const handleSubmit = async (e) => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hình ảnh
+                </label>
                 <input
                   type="file"
                   accept="image/*"
@@ -580,7 +640,9 @@ const handleSubmit = async (e) => {
             </div>
             <div className="w-1/2 pl-8">
               <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-semibold">{selectedRecipe.title}</h2>
+                <h2 className="text-3xl font-semibold">
+                  {selectedRecipe.title}
+                </h2>
                 {isAdmin === 1 && (
                   <div className="flex gap-3">
                     <button
@@ -598,7 +660,9 @@ const handleSubmit = async (e) => {
                   </div>
                 )}
               </div>
-              <p className="text-gray-600 mt-3 text-lg">{selectedRecipe.description}</p>
+              <p className="text-gray-600 mt-3 text-lg">
+                {selectedRecipe.description}
+              </p>
               <h3 className="text-xl font-semibold mt-6">Nguyên liệu</h3>
               <div className="flex flex-wrap gap-3 mt-3">
                 {selectedRecipe.ingredients.map((ing, index) => (
@@ -611,7 +675,9 @@ const handleSubmit = async (e) => {
                 ))}
               </div>
               <h3 className="text-xl font-semibold mt-6">Hướng dẫn</h3>
-              <p className="text-gray-600 mt-3 text-lg whitespace-pre-line">{selectedRecipe.instructions}</p>
+              <p className="text-gray-600 mt-3 text-lg whitespace-pre-line">
+                {selectedRecipe.instructions}
+              </p>
               <button
                 onClick={() => setIsDetailsModalOpen(false)}
                 className="mt-6 bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded-lg"
