@@ -14,11 +14,25 @@ const Dashboard = () => {
       <div className="bg-white p-4 rounded shadow mb-6">
         <h2 className="text-lg font-semibold mb-2">Thực đơn hôm nay</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
-          <div className="p-3 bg-gray-50 rounded border"><strong>Bữa sáng</strong><br />Bánh mì trứng</div>
-          <div className="p-3 bg-gray-50 rounded border"><strong>Bữa trưa</strong><br />Canh chua cá lóc</div>
-          <div className="p-3 bg-gray-50 rounded border"><strong>Bữa tối</strong><br />Thịt kho tàu</div>
+          <div className="p-3 bg-gray-50 rounded border">
+            <strong>Bữa sáng</strong>
+            <br />
+            Bánh mì trứng
+          </div>
+          <div className="p-3 bg-gray-50 rounded border">
+            <strong>Bữa trưa</strong>
+            <br />
+            Canh chua cá lóc
+          </div>
+          <div className="p-3 bg-gray-50 rounded border">
+            <strong>Bữa tối</strong>
+            <br />
+            Thịt kho tàu
+          </div>
         </div>
-        <button className="mt-2 px-4 py-2 bg-white border rounded hover:bg-gray-100">📅 Xem kế hoạch bữa ăn</button>
+        <button className="mt-2 px-4 py-2 bg-white border rounded hover:bg-gray-100">
+          📅 Xem kế hoạch bữa ăn
+        </button>
       </div>
 
       <div className="bg-white p-4 rounded shadow">

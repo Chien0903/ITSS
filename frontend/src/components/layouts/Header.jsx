@@ -2,48 +2,27 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api";
 import { ACCESS_TOKEN } from "../../constants";
+import NotificationBell from "../NotificationBell";
 
 const Header = () => {
   const navigate = useNavigate();
   const isLoggedIn = Boolean(localStorage.getItem(ACCESS_TOKEN));
-  const [cartCount, setCartCount] = useState(0);
+  const [userInfo, setUserInfo] = useState(null);
 
   useEffect(() => {
-    // Hàm cập nhật số lượng sản phẩm trong giỏ từ API
-    const updateCartCount = async () => {
-      const token = localStorage.getItem(ACCESS_TOKEN);
-      if (!token) {
-        setCartCount(0);
-        return;
-      }
-
+    // Lấy thông tin user
+    const getUserInfo = async () => {
       try {
-        const response = await api.get("/api/cart/");
-        const data = response.data;
-        const total = (data.items || []).reduce(
-          (sum, item) => sum + (item.quantity || 0),
-          0
-        );
-        setCartCount(total);
+        const response = await api.get("/api/user/me/");
+        setUserInfo(response.data.user);
       } catch (error) {
-        console.error("Lỗi khi lấy giỏ hàng:", error);
-        setCartCount(0);
+        console.error("Lỗi khi lấy thông tin user:", error);
       }
     };
 
-    updateCartCount();
-
-    // Lắng nghe sự thay đổi khi quay lại trang
-    window.addEventListener("focus", updateCartCount);
-
-    // Tạo event listener tùy chỉnh để cập nhật cart count
-    const handleCartUpdate = () => updateCartCount();
-    window.addEventListener("cartUpdated", handleCartUpdate);
-
-    return () => {
-      window.removeEventListener("focus", updateCartCount);
-      window.removeEventListener("cartUpdated", handleCartUpdate);
-    };
+    if (isLoggedIn) {
+      getUserInfo();
+    }
   }, [isLoggedIn]);
 
   const handleLogin = () => {
@@ -52,40 +31,106 @@ const Header = () => {
 
   const handleLogout = () => {
     localStorage.clear();
-    setCartCount(0);
     navigate("/login");
   };
 
+  const getUserInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
   return (
-    <header className="w-full flex items-center justify-between px-6 py-3 bg-white shadow-md">
-      <div className="text-2xl font-bold text-green-700 flex items-center gap-2">
-        🛒 Smart Meal
+    <header className="w-full flex items-center justify-between px-6 py-4 bg-gradient-to-r from-green-600 via-green-500 to-emerald-500 shadow-lg border-b border-green-200">
+      {/* Logo */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+          <span className="text-2xl">🍽️</span>
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Smart Meal</h1>
+          <p className="text-green-100 text-xs">Quản lý thông minh</p>
+        </div>
       </div>
-      <div className="flex items-center gap-4">
-        <button className="relative p-2 rounded hover:bg-green-100 transition">
-          <span className="material-icons text-xl">notifications</span>
-        </button>
-        <button
-          className="relative p-2 rounded hover:bg-green-100 transition"
-          onClick={() => navigate("/cart")}
-        >
-          <span className="material-icons text-xl">shopping_cart</span>
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 min-w-[20px] h-5 flex items-center justify-center">
-              {cartCount}
-            </span>
-          )}
-        </button>
-        {isLoggedIn ? (
+
+      {/* Center - Search Bar */}
+      <div className="hidden md:flex flex-1 max-w-md mx-8">
+        <div className="relative w-full">
+          <input
+            type="text"
+            placeholder="Tìm kiếm sản phẩm, công thức..."
+            className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 bg-white border border-green-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent shadow-sm"
+          />
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side */}
+      <div className="flex items-center gap-3">
+        {isLoggedIn && (
+          <>
+            {/* Notifications - Replaced with NotificationBell */}
+            <NotificationBell />
+
+            {/* User Profile */}
+            <div className="flex items-center gap-3 ml-2">
+              <div className="hidden sm:block text-right">
+                <p className="text-white font-medium text-sm">
+                  {userInfo?.name || "Người dùng"}
+                </p>
+                <p className="text-green-100 text-xs">{userInfo?.email}</p>
+              </div>
+              <button
+                onClick={() => navigate("/profile")}
+                className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center text-white font-semibold hover:bg-opacity-30 transition-all duration-200 border-2 border-white border-opacity-30"
+              >
+                {getUserInitials(userInfo?.name)}
+              </button>
+            </div>
+
+            {/* Logout */}
+            <button
+              className="ml-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 flex items-center gap-2"
+              onClick={handleLogout}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
+              </svg>
+              <span className="hidden sm:inline">Đăng xuất</span>
+            </button>
+          </>
+        )}
+
+        {!isLoggedIn && (
           <button
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
-            onClick={handleLogout}
-          >
-            Đăng xuất
-          </button>
-        ) : (
-          <button
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+            className="px-6 py-2 bg-white text-green-600 rounded-lg hover:bg-green-50 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 font-semibold"
             onClick={handleLogin}
           >
             Đăng nhập

@@ -12,6 +12,63 @@ from django.db.models import Sum
 from ..models.product_catalog import ProductCatalog
 from ..models.categories import Categories
 
+class FridgeNotificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_group(self, request):
+        group_id = request.query_params.get('group_id')
+        user = request.user
+        if group_id:
+            group = get_object_or_404(Group, pk=group_id, members=user)
+        else:
+            # Lấy nhóm đầu tiên user tham gia nếu không truyền group_id
+            group = user.joined_groups.first()
+            if not group:
+                return None
+        return group
+
+    def get(self, request):
+        """Lấy thông báo thực phẩm sắp hết hạn trong vòng 3 ngày"""
+        group = self.get_group(request)
+        if not group:
+            return Response("User không thuộc nhóm nào", status=status.HTTP_400_BAD_REQUEST)
+
+        fridge, _ = Fridge.objects.get_or_create(group=group)
+        today = date.today()
+        three_days_later = today + timedelta(days=3)
+        
+        # Lấy thực phẩm sắp hết hạn trong vòng 3 ngày
+        expiring_items = AddToFridge.objects.filter(
+            fridge=fridge,
+            expiredDate__gte=today,
+            expiredDate__lte=three_days_later
+        ).select_related('product', 'product__category').order_by('expiredDate')
+
+        # Serialize dữ liệu
+        serializer = AddToFridgeSerializer(expiring_items, many=True)
+        items_data = serializer.data
+
+        # Thêm thông tin ngày còn lại
+        for item in items_data:
+            expired_date = date.fromisoformat(item['expiredDate'])
+            days_remaining = (expired_date - today).days
+            item['days_remaining'] = days_remaining
+            
+            if days_remaining == 0:
+                item['urgency'] = 'critical'  # Hết hạn hôm nay
+                item['urgency_text'] = 'Hết hạn hôm nay'
+            elif days_remaining == 1:
+                item['urgency'] = 'high'  # Hết hạn ngày mai
+                item['urgency_text'] = 'Hết hạn ngày mai'
+            elif days_remaining <= 3:
+                item['urgency'] = 'medium'  # Hết hạn trong 2-3 ngày
+                item['urgency_text'] = f'Hết hạn trong {days_remaining} ngày'
+
+        return Response({
+            'total_expiring': len(items_data),
+            'items': items_data
+        })
+
 class FridgeDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
