@@ -14,10 +14,10 @@ import Profile from "./pages/Profile";
 import SelectGroup from "./pages/SelectGroup";
 import AddProduct from "./pages/AddProduct";
 import EditProduct from "./pages/EditProduct";
-import Cart from "./pages/Cart";
 import AddShoppingList from "./pages/addShoppingList";
 import ShoppingListDetail from "./pages/ShoppingListDetail";
 import AddNewPlanning from "./pages/AddNewPlanning";
+import ProtectedRoute from "./protectedRoute";
 
 function Logout() {
   localStorage.clear();
@@ -27,7 +27,7 @@ function Logout() {
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Sidebar />}>
+      <Route path="/" element={<ProtectedRoute><Sidebar /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="shopping-list" element={<ShoppingList />} />
         <Route path="store" element={<Store />} />
@@ -37,7 +37,6 @@ function App() {
         <Route path="statistics" element={<Statistics />} />
         <Route path="/add-product" element={<AddProduct />} />
         <Route path="/edit-product/:id" element={<EditProduct />} />
-        <Route path="/cart" element={<Cart />} />
         <Route path="add-shopping-list" element={<AddShoppingList />} />
         <Route path="shopping-list/:id" element={<ShoppingListDetail />} />
         <Route path="add-new-planning" element={<AddNewPlanning />} />

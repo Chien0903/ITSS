@@ -5,7 +5,7 @@ from ..models.user import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'name', 'email']
+        fields = ['id', 'name', 'email', 'username', 'role', 'phone', 'dateOfBirth', 'address', 'bio']
 
 class GroupSerializer(serializers.ModelSerializer):
     createdBy = UserSerializer(read_only=True)

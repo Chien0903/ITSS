@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404
 from ..models.shopping_list import ShoppingList
 from ..models.add_to_list import AddToList
 from ..serializers.shopping_serializers import ShoppingListSerializer, AddToListSerializer
+from django.db.models import Sum, Count
 
 class ShoppingListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -154,3 +155,51 @@ class ToggleItemStatusView(APIView):
             'message': 'Cập nhật trạng thái thành công',
             'data': AddToListSerializer(item).data
         })
+
+from django.db.models import Sum, F, FloatField, ExpressionWrapper
+
+class PurchasedShoppingStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        purchased_items = AddToList.objects.filter(status='purchased', list__user=request.user)
+        total_items = purchased_items.count()
+        total_quantity = purchased_items.aggregate(total=Sum('quantity'))['total'] or 0
+        # Tính tổng giá tiền: quantity * product.price
+        total_price = purchased_items.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F('quantity') * F('product__price'),
+                    output_field=FloatField()
+                )
+            )
+        )['total'] or 0
+
+        return Response({
+            'total_items': total_items,
+            'total_quantity': total_quantity,
+            'total_price': total_price
+        })
+
+class PurchasedStatsByCategoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Lọc các sản phẩm đã mua của user hiện tại
+        purchased_items = AddToList.objects.filter(status='purchased', list__user=request.user)
+        # Thống kê tổng số lượng theo từng danh mục
+        stats = (
+            purchased_items
+            .values('product__category__categoryName')
+            .annotate(total_quantity=Sum('quantity'))
+            .order_by('-total_quantity')
+        )
+        # Định dạng dữ liệu trả về cho frontend
+        data = [
+            {
+                'name': s['product__category__categoryName'] or 'Khác',
+                'value': s['total_quantity'] or 0
+            }
+            for s in stats
+        ]
+        return Response(data)

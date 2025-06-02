@@ -1,11 +1,12 @@
 // Store.jsx - đã cập nhật thêm 2 nút + routing + responsive cho admin
 
 import React, { useState, useEffect } from "react";
-import { ShoppingCart, Plus, Eye, Edit, Trash2 } from "lucide-react";
+import { ShoppingCart, Plus, Eye, Edit, Trash2, List } from "lucide-react";
 import api from "../api";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Store = () => {
+  const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
   const isAdmin = user && user.role === "admin";
 
@@ -19,6 +20,12 @@ const Store = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showProductDetail, setShowProductDetail] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState(null);
+  // New states for shopping list modal
+  const [showShoppingListModal, setShowShoppingListModal] = useState(false);
+  const [shoppingLists, setShoppingLists] = useState([]);
+  const [selectedProductToAdd, setSelectedProductToAdd] = useState(null);
+  const [loadingShoppingLists, setLoadingShoppingLists] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,21 +45,63 @@ const Store = () => {
     fetchData();
   }, []);
 
+  // New function to fetch shopping lists
+  const fetchShoppingLists = async () => {
+    try {
+      setLoadingShoppingLists(true);
+      const response = await api.get("/api/shopping-lists/");
+      setShoppingLists(response.data);
+    } catch (error) {
+      console.error("Error fetching shopping lists:", error);
+      alert("Có lỗi xảy ra khi tải danh sách mua sắm!");
+    } finally {
+      setLoadingShoppingLists(false);
+    }
+  };
+
+  // Modified handleAddToCart function
   const handleAddToCart = async (product) => {
-    const productId = product.productID;
+    setSelectedProductToAdd(product);
+    setQuantity(1);
+    setShowShoppingListModal(true);
+    await fetchShoppingLists();
+  };
+
+  // New function to add product to shopping list
+  const handleAddToShoppingList = async (listId) => {
+    const productId = selectedProductToAdd.productID;
     setAddingToCart((prev) => ({ ...prev, [productId]: true }));
 
     try {
-      await api.post("/api/cart/update/", {
-        product_id: productId,
-        quantity: 1,
+      await api.post(`/api/shopping-lists/${listId}/items/`, {
+        product: productId,
+        quantity: quantity,
       });
-      window.dispatchEvent(new Event("cartUpdated"));
+      alert(
+        `Đã thêm ${selectedProductToAdd.productName} vào danh sách mua sắm thành công!`
+      );
+      setShowShoppingListModal(false);
+      setSelectedProductToAdd(null);
     } catch (error) {
-      alert("Có lỗi xảy ra khi thêm vào giỏ hàng!");
+      console.error("Error adding to shopping list:", error);
+      if (
+        error.response?.status === 400 &&
+        error.response?.data?.message?.includes("unique")
+      ) {
+        alert("Sản phẩm này đã có trong danh sách mua sắm!");
+      } else {
+        alert("Có lỗi xảy ra khi thêm vào danh sách mua sắm!");
+      }
     } finally {
       setAddingToCart((prev) => ({ ...prev, [productId]: false }));
     }
+  };
+
+  // Close shopping list modal
+  const closeShoppingListModal = () => {
+    setShowShoppingListModal(false);
+    setSelectedProductToAdd(null);
+    setQuantity(1);
   };
 
   const handleViewProduct = (product) => {
@@ -255,7 +304,7 @@ const Store = () => {
                     <ShoppingCart size={16} />
                     {addingToCart[product.productID]
                       ? "Đang thêm..."
-                      : "Thêm vào giỏ"}
+                      : "Thêm vào danh sách"}
                   </button>
 
                   <button
@@ -295,8 +344,8 @@ const Store = () => {
 
       {/* Product Detail Modal */}
       {showProductDetail && selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border">
             <div className="p-6">
               {/* Header */}
               <div className="flex justify-between items-start mb-4">
@@ -437,14 +486,13 @@ const Store = () => {
                   className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg flex items-center justify-center gap-2 font-medium"
                   onClick={() => {
                     handleAddToCart(selectedProduct);
-                    closeProductDetail();
                   }}
                   disabled={addingToCart[selectedProduct.productID]}
                 >
                   <ShoppingCart size={20} />
                   {addingToCart[selectedProduct.productID]
                     ? "Đang thêm..."
-                    : "Thêm vào giỏ hàng"}
+                    : "Thêm vào danh sách"}
                 </button>
 
                 {isAdmin && (
@@ -472,6 +520,161 @@ const Store = () => {
                   </>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shopping List Modal */}
+      {showShoppingListModal && selectedProductToAdd && (
+        <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto shadow-2xl border">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-xl font-bold">
+                  Thêm vào danh sách mua sắm
+                </h2>
+                <button
+                  onClick={closeShoppingListModal}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Selected Product Info */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center overflow-hidden">
+                    {selectedProductToAdd.image ? (
+                      <img
+                        src={selectedProductToAdd.image}
+                        alt={selectedProductToAdd.productName}
+                        className="object-contain w-full h-full"
+                      />
+                    ) : (
+                      <span className="text-gray-400">📦</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium">
+                      {selectedProductToAdd.productName}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {Number(
+                        selectedProductToAdd.price ||
+                          selectedProductToAdd.original_price
+                      ).toLocaleString()}
+                      đ
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity Input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Số lượng
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded flex items-center justify-center"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) =>
+                      setQuantity(Math.max(1, parseInt(e.target.value) || 1))
+                    }
+                    className="w-16 text-center border border-gray-300 rounded px-2 py-1"
+                  />
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded flex items-center justify-center"
+                  >
+                    +
+                  </button>
+                  <span className="text-sm text-gray-600 ml-2">
+                    {selectedProductToAdd.unit}
+                  </span>
+                </div>
+              </div>
+
+              {/* Shopping Lists */}
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Chọn danh sách mua sắm
+                </h3>
+
+                {loadingShoppingLists ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Đang tải danh sách...
+                    </p>
+                  </div>
+                ) : shoppingLists.length === 0 ? (
+                  <div className="text-center py-4">
+                    <div className="text-gray-400 text-4xl mb-2">📝</div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Bạn chưa có danh sách mua sắm nào
+                    </p>
+                    <button
+                      onClick={() => {
+                        closeShoppingListModal();
+                        navigate("/add-shopping-list");
+                      }}
+                      className="text-blue-500 hover:text-blue-600 text-sm font-medium"
+                    >
+                      Tạo danh sách mới
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {shoppingLists.map((list) => (
+                      <div
+                        key={list.listID}
+                        onClick={() => handleAddToShoppingList(list.listID)}
+                        className="p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">
+                              {list.listName}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {new Date(list.date).toLocaleDateString("vi-VN")}
+                            </p>
+                          </div>
+                          <div className="flex items-center text-gray-400">
+                            <List size={16} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Create New List Button */}
+              {shoppingLists.length > 0 && (
+                <div className="border-t pt-4">
+                  <button
+                    onClick={() => {
+                      closeShoppingListModal();
+                      navigate("/add-shopping-list");
+                    }}
+                    className="w-full py-2 text-sm text-blue-500 hover:text-blue-600 font-medium"
+                  >
+                    + Tạo danh sách mua sắm mới
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
