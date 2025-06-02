@@ -19,6 +19,7 @@ import {
   CalendarOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import dayjs from "dayjs";
 import api from "../api";
 
 const { Title, Text } = Typography;
@@ -69,7 +70,15 @@ const MealPlanNew = () => {
     { value: "dinner", label: "Bữa tối" },
   ];
 
-  const dayNames = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
+  const dayNames = [
+    "Thứ 2",
+    "Thứ 3",
+    "Thứ 4",
+    "Thứ 5",
+    "Thứ 6",
+    "Thứ 7",
+    "Chủ nhật",
+  ];
 
   // Fetch danh sách recipes từ API
   const fetchRecipes = async () => {
@@ -95,31 +104,49 @@ const MealPlanNew = () => {
     const dateParam = searchParams.get("date");
     const mealTypeParam = searchParams.get("mealType");
     const dayParam = searchParams.get("day");
+    const dayNameParam = searchParams.get("dayName");
     const editParam = searchParams.get("edit");
 
     console.log("Query params:", {
       dateParam,
       mealTypeParam,
       dayParam,
+      dayNameParam,
       editParam,
     });
 
     if (dateParam) {
       setStartDate(dateParam);
 
-      // Tự động tạo tên kế hoạch dựa trên ngày
-      const date = new Date(dateParam);
-      const dayNames = [
-        "Thứ 2",
-        "Thứ 3",
-        "Thứ 4",
-        "Thứ 5",
-        "Thứ 6",
-        "Thứ 7",
-        "CN",
-      ];
-      const dayName = dayNames[date.getDay() === 0 ? 6 : date.getDay() - 1]; // Chuyển đổi Sunday=0 thành CN=6
-      const formattedDate = date.toLocaleDateString("vi-VN");
+      // Sử dụng Day.js để xử lý ngày tháng chính xác
+      const date = dayjs(dateParam);
+
+      // Ưu tiên sử dụng dayName từ query params nếu có
+      let dayName;
+      if (dayNameParam) {
+        dayName = decodeURIComponent(dayNameParam);
+        console.log("Using dayName from query params:", dayName);
+      } else {
+        // Fallback: tính từ ngày bằng Day.js
+        const dayNames = [
+          "Chủ nhật", // Day.js: 0 = Sunday
+          "Thứ 2", // Day.js: 1 = Monday
+          "Thứ 3", // Day.js: 2 = Tuesday
+          "Thứ 4", // Day.js: 3 = Wednesday
+          "Thứ 5", // Day.js: 4 = Thursday
+          "Thứ 6", // Day.js: 5 = Friday
+          "Thứ 7", // Day.js: 6 = Saturday
+        ];
+        dayName = dayNames[date.day()];
+        console.log(
+          "Calculated dayName from date using Day.js:",
+          dayName,
+          "day():",
+          date.day()
+        );
+      }
+
+      const formattedDate = date.format("DD/MM/YYYY"); // Sử dụng Day.js để format
 
       if (mealTypeParam) {
         const mealTypeNames = {
@@ -167,7 +194,7 @@ const MealPlanNew = () => {
       message.info(
         "Bạn đang chỉnh sửa kế hoạch bữa ăn. Thông tin đã được điền sẵn."
       );
-    } else if (dateParam && mealTypeParam) {
+    } else {
       message.success("Thông tin ngày và bữa ăn đã được điền sẵn từ lịch.");
     }
   }, [searchParams]);
@@ -221,11 +248,10 @@ const MealPlanNew = () => {
     }
 
     // Kiểm tra ngày bắt đầu không được trong quá khứ
-    const selectedDate = new Date(startDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const selectedDate = dayjs(startDate);
+    const today = dayjs().startOf("day");
 
-    if (selectedDate < today) {
+    if (selectedDate.isBefore(today)) {
       message.warning("Ngày bắt đầu nên từ hôm nay trở đi");
     }
 

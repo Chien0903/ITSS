@@ -72,28 +72,39 @@ class MealPlanCreateSerializer(serializers.Serializer):
             # Tạo meal plan cho từng planned_meal
             for meal_data in planned_meals:
                 print(f"Creating meal plan for: {meal_data}")
+                
+                # Tính toán day_of_week dựa trên start_date thực tế thay vì dùng day từ frontend
+                start_date = validated_data['start_date']
+                # Python weekday(): Monday=0, Sunday=6
+                # Chuyển đổi sang format của chúng ta: Monday=0, Sunday=6 (giống nhau)
+                day_of_week_calculated = start_date.weekday()
+                
+                print(f"start_date: {start_date}")
+                print(f"frontend day parameter: {meal_data['day']}")
+                print(f"calculated day_of_week from start_date: {day_of_week_calculated}")
+                
                 meal_plan = MealPlan.objects.create(
                     plan_name=validated_data['plan_name'],
                     start_date=validated_data['start_date'],
                     description=validated_data.get('description', ''),
                     mealType=meal_data['meal'],
-                    day_of_week=int(meal_data['day']),
+                    day_of_week=day_of_week_calculated,  # Sử dụng day_of_week được tính từ start_date
                     group_id=validated_data['group'],
                     user_id=validated_data['user']
                 )
                 print(f"Created meal plan: {meal_plan}")
-            meal_plans.append(meal_plan)
-            
-            # Nếu có recipeId, tạo relation trong Have table
-            recipe_id = meal_data.get('recipeId')
-            if recipe_id:
-                try:
-                    from ..models.recipe import Recipe
-                    recipe = Recipe.objects.get(recipeID=recipe_id)
-                    Have.objects.create(plan=meal_plan, recipe=recipe)
-                    print(f"Created Have relation: meal_plan={meal_plan.planID}, recipe={recipe_id}")
-                except Recipe.DoesNotExist:
-                    print(f"Warning: Recipe {recipe_id} not found")
+                meal_plans.append(meal_plan)
+                
+                # Nếu có recipeId, tạo relation trong Have table
+                recipe_id = meal_data.get('recipeId')
+                if recipe_id:
+                    try:
+                        from ..models.recipe import Recipe
+                        recipe = Recipe.objects.get(recipeID=recipe_id)
+                        Have.objects.create(plan=meal_plan, recipe=recipe)
+                        print(f"Created Have relation: meal_plan={meal_plan.planID}, recipe={recipe_id}")
+                    except Recipe.DoesNotExist:
+                        print(f"Warning: Recipe {recipe_id} not found")
         
         print(f"Total created: {len(meal_plans)} meal plans")
         return meal_plans

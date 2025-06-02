@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from "react";
 import api from "../api";
+import { triggerNotificationRefreshWithDelay } from "../utils/notificationUtils";
 
 const Fridge = () => {
   const [categories, setCategories] = useState([]);
   const units = [
-    "kg", "g", "lít", "ml", "cái", "gói", "hộp", "túi", "lon", "chai", "vỉ", "bó", "miếng", "bịch"
+    "kg",
+    "g",
+    "lít",
+    "ml",
+    "cái",
+    "gói",
+    "hộp",
+    "túi",
+    "lon",
+    "chai",
+    "vỉ",
+    "bó",
+    "miếng",
+    "bịch",
   ];
 
   const [fridgeItems, setFridgeItems] = useState([]);
@@ -58,23 +72,29 @@ const Fridge = () => {
       const params = groupId ? { group_id: groupId } : {};
       if (DEBUG) console.log("Fetching fridge list with params:", params);
       const response = await api.get("/api/fridge/", { params });
-      if (DEBUG) console.log("Fridge data fetched:", JSON.stringify(response.data, null, 2));
+      if (DEBUG)
+        console.log(
+          "Fridge data fetched:",
+          JSON.stringify(response.data, null, 2)
+        );
 
       const filteredItems = (response.data.items || []).filter(
         (item) => item.location === activeTab
       );
       setFridgeItems(filteredItems); // Use raw items since serializer includes category_id and product_category_name
-      setStats(response.data.stats || {
-        total_products: 0,
-        expired_products: 0,
-        expiring_soon_products: 0,
-        popular_categories: [],
-      });
+      setStats(
+        response.data.stats || {
+          total_products: 0,
+          expired_products: 0,
+          expiring_soon_products: 0,
+          popular_categories: [],
+        }
+      );
     } catch (error) {
       console.error("Error fetching fridge lists:", error);
       setError(
         error.response?.data?.detail ||
-        "Không thể tải danh sách thực phẩm trong tủ lạnh. Thử lại sau"
+          "Không thể tải danh sách thực phẩm trong tủ lạnh. Thử lại sau"
       );
     } finally {
       setIsLoading(false);
@@ -84,7 +104,8 @@ const Fridge = () => {
   const fetchCategories = async () => {
     try {
       const res = await api.get("/api/categories");
-      if (DEBUG) console.log("Categories fetched:", JSON.stringify(res.data, null, 2));
+      if (DEBUG)
+        console.log("Categories fetched:", JSON.stringify(res.data, null, 2));
       setCategories(res.data);
     } catch (error) {
       console.error("Lỗi khi lấy danh mục:", error);
@@ -95,7 +116,13 @@ const Fridge = () => {
   const handleSearchProduct = async (e) => {
     const term = e.target.value;
     setSearchTermProduct(term);
-    setNewItem({ ...newItem, productName: term, productID: null, unit: "", categoryID: "" });
+    setNewItem({
+      ...newItem,
+      productName: term,
+      productID: null,
+      unit: "",
+      categoryID: "",
+    });
     setIsFromCatalog(false);
 
     if (term.length < 2) {
@@ -106,7 +133,8 @@ const Fridge = () => {
       const response = await api.get("/api/products/search/", {
         params: { q: term },
       });
-      if (DEBUG) console.log("Search results:", JSON.stringify(response.data, null, 2));
+      if (DEBUG)
+        console.log("Search results:", JSON.stringify(response.data, null, 2));
       setSearchResults(
         response.data.map((product) => ({
           productID: product.productID,
@@ -158,7 +186,9 @@ const Fridge = () => {
       !newItem.expiredDate ||
       !newItem.location
     ) {
-      setError("Vui lòng điền đầy đủ thông tin sản phẩm (Tên, Số lượng, Đơn vị, Danh mục, Ngày hết hạn, Vị trí).");
+      setError(
+        "Vui lòng điền đầy đủ thông tin sản phẩm (Tên, Số lượng, Đơn vị, Danh mục, Ngày hết hạn, Vị trí)."
+      );
       return;
     }
 
@@ -178,19 +208,28 @@ const Fridge = () => {
       payload.category_id = newItem.categoryID;
     }
 
-    if (DEBUG) console.log("Adding item with payload:", JSON.stringify(payload, null, 2));
+    if (DEBUG)
+      console.log(
+        "Adding item with payload:",
+        JSON.stringify(payload, null, 2)
+      );
 
     try {
       const res = await api.post("/api/fridge/", payload);
-      if (DEBUG) console.log("Thêm sản phẩm thành công:", JSON.stringify(res.data, null, 2));
+      if (DEBUG)
+        console.log(
+          "Thêm sản phẩm thành công:",
+          JSON.stringify(res.data, null, 2)
+        );
       setIsModalOpen(false);
       resetNewItemForm();
       fetchFridgeList();
+      triggerNotificationRefreshWithDelay();
     } catch (error) {
       console.error("Lỗi khi thêm sản phẩm:", error);
       setError(
         "Lỗi khi thêm sản phẩm: " +
-        (error.response ? JSON.stringify(error.response.data) : error.message)
+          (error.response ? JSON.stringify(error.response.data) : error.message)
       );
     }
   };
@@ -198,8 +237,15 @@ const Fridge = () => {
   const handleUpdateItem = async () => {
     setError("");
 
-    if (!editingItem || !newItem.quantity || !newItem.expiredDate || !newItem.location) {
-      setError("Vui lòng điền đầy đủ các trường bắt buộc (Số lượng, Ngày hết hạn, Vị trí) hoặc không có sản phẩm nào được chọn.");
+    if (
+      !editingItem ||
+      !newItem.quantity ||
+      !newItem.expiredDate ||
+      !newItem.location
+    ) {
+      setError(
+        "Vui lòng điền đầy đủ các trường bắt buộc (Số lượng, Ngày hết hạn, Vị trí) hoặc không có sản phẩm nào được chọn."
+      );
       return;
     }
 
@@ -210,19 +256,28 @@ const Fridge = () => {
       category_id: newItem.categoryID,
     };
 
-    if (DEBUG) console.log("Updating item with payload:", JSON.stringify(payload, null, 2));
+    if (DEBUG)
+      console.log(
+        "Updating item with payload:",
+        JSON.stringify(payload, null, 2)
+      );
 
     try {
       const res = await api.patch(`/api/fridge/${editingItem.id}/`, payload);
-      if (DEBUG) console.log("Cập nhật sản phẩm thành công:", JSON.stringify(res.data, null, 2));
+      if (DEBUG)
+        console.log(
+          "Cập nhật sản phẩm thành công:",
+          JSON.stringify(res.data, null, 2)
+        );
       setIsModalOpen(false);
       resetNewItemForm();
       fetchFridgeList();
+      triggerNotificationRefreshWithDelay();
     } catch (error) {
       console.error("Lỗi khi cập nhật sản phẩm:", error);
       setError(
         "Lỗi khi cập nhật sản phẩm: " +
-        (error.response ? JSON.stringify(error.response.data) : error.message)
+          (error.response ? JSON.stringify(error.response.data) : error.message)
       );
     }
   };
@@ -232,7 +287,11 @@ const Fridge = () => {
     const formattedExpiredDate = item.expiredDate
       ? new Date(item.expiredDate).toISOString().split("T")[0]
       : "";
-    if (DEBUG) console.log("Opening edit modal for item:", JSON.stringify(item, null, 2));
+    if (DEBUG)
+      console.log(
+        "Opening edit modal for item:",
+        JSON.stringify(item, null, 2)
+      );
     setNewItem({
       productName: item.product_name,
       productID: item.product || null,
@@ -252,6 +311,7 @@ const Fridge = () => {
       if (DEBUG) console.log("Deleting item with id:", id);
       await api.delete(`/api/fridge/${id}/`);
       fetchFridgeList();
+      triggerNotificationRefreshWithDelay();
     } catch (error) {
       console.error("Error deleting item:", error);
       setError(
@@ -293,68 +353,93 @@ const Fridge = () => {
                 </h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block font-medium text-sm text-gray-700 mb-1">Tên sản phẩm</label>
+                    <label className="block font-medium text-sm text-gray-700 mb-1">
+                      Tên sản phẩm
+                    </label>
                     <input
                       type="text"
                       placeholder="Nhập tên sản phẩm hoặc tìm trong catalog"
-                      value={editingItem ? newItem.productName : searchTermProduct}
+                      value={
+                        editingItem ? newItem.productName : searchTermProduct
+                      }
                       onChange={handleSearchProduct}
                       disabled={!!editingItem || isFromCatalog}
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
 
-                    {!editingItem && searchTermProduct.length > 0 && searchResults.length > 0 && !isFromCatalog && (
-                      <ul className="border rounded mt-1 max-h-40 overflow-y-auto bg-white shadow z-10">
-                        {searchResults.map((product) => (
-                          <li
-                            key={product.productID}
-                            className="px-3 py-2 hover:bg-green-100 cursor-pointer"
-                            onClick={() => handleSelectSuggestedProduct(product)}
-                          >
-                            {product.productName} — {product.unit} ({product.categoryName || 'Không phân loại'})
-                          </li>
-                        ))}
-                        {searchTermProduct.length > 0 &&
-                          !searchResults.some(
-                            (p) => p.productName.toLowerCase() === searchTermProduct.toLowerCase()
-                          ) && (
+                    {!editingItem &&
+                      searchTermProduct.length > 0 &&
+                      searchResults.length > 0 &&
+                      !isFromCatalog && (
+                        <ul className="border rounded mt-1 max-h-40 overflow-y-auto bg-white shadow z-10">
+                          {searchResults.map((product) => (
                             <li
-                              className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border-t"
-                              onClick={handleAddNewProductManually}
+                              key={product.productID}
+                              className="px-3 py-2 hover:bg-green-100 cursor-pointer"
+                              onClick={() =>
+                                handleSelectSuggestedProduct(product)
+                              }
                             >
-                              Thêm sản phẩm mới: <strong>{searchTermProduct}</strong>
+                              {product.productName} — {product.unit} (
+                              {product.categoryName || "Không phân loại"})
                             </li>
-                          )}
-                      </ul>
-                    )}
+                          ))}
+                          {searchTermProduct.length > 0 &&
+                            !searchResults.some(
+                              (p) =>
+                                p.productName.toLowerCase() ===
+                                searchTermProduct.toLowerCase()
+                            ) && (
+                              <li
+                                className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border-t"
+                                onClick={handleAddNewProductManually}
+                              >
+                                Thêm sản phẩm mới:{" "}
+                                <strong>{searchTermProduct}</strong>
+                              </li>
+                            )}
+                        </ul>
+                      )}
 
-                    {!editingItem && !isFromCatalog && searchTermProduct.length > 0 && searchResults.length === 0 && (
-                      <div
-                        className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border rounded mt-1 bg-white shadow z-10"
-                        onClick={handleAddNewProductManually}
-                      >
-                        Thêm sản phẩm mới: <strong>{searchTermProduct}</strong>
-                      </div>
-                    )}
+                    {!editingItem &&
+                      !isFromCatalog &&
+                      searchTermProduct.length > 0 &&
+                      searchResults.length === 0 && (
+                        <div
+                          className="p-2 hover:bg-green-100 cursor-pointer text-blue-500 border rounded mt-1 bg-white shadow z-10"
+                          onClick={handleAddNewProductManually}
+                        >
+                          Thêm sản phẩm mới:{" "}
+                          <strong>{searchTermProduct}</strong>
+                        </div>
+                      )}
                   </div>
 
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <label className="block font-medium text-sm text-gray-700 mb-1">Số lượng</label>
+                      <label className="block font-medium text-sm text-gray-700 mb-1">
+                        Số lượng
+                      </label>
                       <input
                         type="number"
                         min={1}
                         placeholder="Số lượng"
                         value={newItem.quantity}
-                        onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, quantity: e.target.value })
+                        }
                         className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block font-medium text-sm text-gray-700 mb-1">Đơn vị</label>
+                      <label className="block font-medium text-sm text-gray-700 mb-1">
+                        Đơn vị
+                      </label>
                       <select
                         value={newItem.unit || ""}
-                        onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, unit: e.target.value })
+                        }
                         disabled={!!editingItem || isFromCatalog}
                         className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                       >
@@ -369,10 +454,14 @@ const Fridge = () => {
                   </div>
 
                   <div>
-                    <label className="block font-medium text-sm text-gray-700 mb-1">Danh mục</label>
+                    <label className="block font-medium text-sm text-gray-700 mb-1">
+                      Danh mục
+                    </label>
                     <select
                       value={newItem.categoryID || ""}
-                      onChange={(e) => setNewItem({ ...newItem, categoryID: e.target.value })}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, categoryID: e.target.value })
+                      }
                       disabled={isFromCatalog}
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
@@ -386,20 +475,28 @@ const Fridge = () => {
                   </div>
 
                   <div>
-                    <label className="block font-medium text-sm text-gray-700 mb-1">Ngày hết hạn</label>
+                    <label className="block font-medium text-sm text-gray-700 mb-1">
+                      Ngày hết hạn
+                    </label>
                     <input
                       type="date"
                       value={newItem.expiredDate}
-                      onChange={(e) => setNewItem({ ...newItem, expiredDate: e.target.value })}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, expiredDate: e.target.value })
+                      }
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block font-medium text-sm text-gray-700 mb-1">Vị trí</label>
+                    <label className="block font-medium text-sm text-gray-700 mb-1">
+                      Vị trí
+                    </label>
                     <select
                       value={newItem.location}
-                      onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, location: e.target.value })
+                      }
                       className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500"
                     >
                       <option value="cool">Tủ lạnh</option>
@@ -444,7 +541,9 @@ const Fridge = () => {
             </div>
             <div className="bg-white p-4 rounded shadow">
               <p className="text-sm text-gray-500">Sản phẩm đã hết hạn</p>
-              <p className="text-2xl font-semibold text-red-500">{stats.expired_products}</p>
+              <p className="text-2xl font-semibold text-red-500">
+                {stats.expired_products}
+              </p>
             </div>
             <div className="bg-white p-4 rounded shadow">
               <p className="text-sm text-gray-500">Phân loại phổ biến</p>
@@ -455,18 +554,26 @@ const Fridge = () => {
           </div>
 
           <div className="bg-white p-6 rounded shadow mb-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">Gợi ý món ăn từ tủ lạnh</h2>
-            <p className="text-gray-500">Không tìm thấy công thức phù hợp với nguyên liệu hiện có</p>
+            <h2 className="text-xl font-semibold mb-2">
+              Gợi ý món ăn từ tủ lạnh
+            </h2>
+            <p className="text-gray-500">
+              Không tìm thấy công thức phù hợp với nguyên liệu hiện có
+            </p>
             <div className="text-gray-400 mt-4">
               <span className="text-5xl">👨‍🍳</span>
-              <p className="mt-2">Hãy thêm nhiều nguyên liệu hơn vào tủ lạnh để nhận gợi ý món ăn</p>
+              <p className="mt-2">
+                Hãy thêm nhiều nguyên liệu hơn vào tủ lạnh để nhận gợi ý món ăn
+              </p>
             </div>
           </div>
 
           <div className="flex gap-2 mb-4">
             <button
               className={`px-3 py-1 rounded ${
-                activeTab === "cool" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                activeTab === "cool"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-gray-100 text-gray-600"
               }`}
               onClick={() => setActiveTab("cool")}
             >
@@ -474,7 +581,9 @@ const Fridge = () => {
             </button>
             <button
               className={`px-3 py-1 rounded ${
-                activeTab === "freeze" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                activeTab === "freeze"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-gray-100 text-gray-600"
               }`}
               onClick={() => setActiveTab("freeze")}
             >
@@ -488,21 +597,28 @@ const Fridge = () => {
                 <div
                   key={item.id}
                   className={`bg-white border p-4 rounded shadow relative ${
-                    item.expiredDate && new Date(item.expiredDate) < new Date() ? 'border-red-300' :
-                    item.isExpiringSoon ? 'border-yellow-300' : 'border-gray-200'
+                    item.expiredDate && new Date(item.expiredDate) < new Date()
+                      ? "border-red-300"
+                      : item.isExpiringSoon
+                      ? "border-yellow-300"
+                      : "border-gray-200"
                   }`}
                 >
-                  <h3 className="text-lg font-semibold">{item.product_name || "Sản phẩm"}</h3>
+                  <h3 className="text-lg font-semibold">
+                    {item.product_name || "Sản phẩm"}
+                  </h3>
                   <p className="text-sm text-gray-500">
                     {item.quantity} {item.product_unit}
                   </p>
                   <p className="text-sm mt-2 font-medium">
-                    Ngày hết hạn: {new Date(item.expiredDate).toLocaleDateString('vi-VN')}
+                    Ngày hết hạn:{" "}
+                    {new Date(item.expiredDate).toLocaleDateString("vi-VN")}
                   </p>
                   <p className="text-sm mt-1 font-medium">
                     {item.isExpiringSoon ? (
                       <span className="text-yellow-500">⚠ Sắp hết hạn!</span>
-                    ) : item.expiredDate && new Date(item.expiredDate) < new Date() ? (
+                    ) : item.expiredDate &&
+                      new Date(item.expiredDate) < new Date() ? (
                       <span className="text-red-500">⚠ Đã hết hạn!</span>
                     ) : (
                       <span className="text-green-500">Còn hạn</span>
@@ -528,7 +644,10 @@ const Fridge = () => {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">Không có thực phẩm trong {activeTab === "cool" ? "tủ lạnh" : "ngăn đông"}.</p>
+              <p className="text-gray-500">
+                Không có thực phẩm trong{" "}
+                {activeTab === "cool" ? "tủ lạnh" : "ngăn đông"}.
+              </p>
             )}
           </div>
         </>
