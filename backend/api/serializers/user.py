@@ -40,8 +40,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         except User.DoesNotExist:
             raise serializers.ValidationError({'email': 'Email không tồn tại.'})
 
-        # So sánh plain text
-        if user.password != password:
+        # ✅ Sử dụng check_password để kiểm tra hash password
+        if not user.check_password(password):
             raise serializers.ValidationError({'password': 'Mật khẩu không đúng.'})
 
         # Trick cho SimpleJWT: truyền username = email

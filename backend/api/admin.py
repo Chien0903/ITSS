@@ -13,14 +13,58 @@ from .models.add_to_fridge import AddToFridge
 from .models.meal_plan import MealPlan
 from .models.have import Have
 from .models.in_model import In
-from .models.cart import Cart, CartItem
 
 
 # Đăng ký User model
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'email', 'username', 'name', 'role')
-    search_fields = ('email', 'name', 'username')
+    list_display = ('id', 'email', 'name', 'username', 'role', 'phone', 'is_active', 'date_joined')
+    list_display_links = ('id', 'email', 'name')
+    search_fields = ('email', 'name', 'username', 'phone')
+    list_filter = ('role', 'is_active', 'is_staff', 'is_superuser', 'date_joined')
+    ordering = ('-date_joined',)
+    readonly_fields = ('id', 'date_joined', 'last_login')
+    
+    fieldsets = (
+        ('Thông tin đăng nhập', {
+            'fields': ('email', 'username', 'password')
+        }),
+        ('Thông tin cá nhân', {
+            'fields': ('name', 'phone', 'dateOfBirth', 'address', 'bio')
+        }),
+        ('Phân quyền', {
+            'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+        }),
+        ('Thông tin hệ thống', {
+            'fields': ('id', 'date_joined', 'last_login'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    add_fieldsets = (
+        ('Thông tin đăng nhập', {
+            'classes': ('wide',),
+            'fields': ('email', 'username', 'password1', 'password2'),
+        }),
+        ('Thông tin cá nhân', {
+            'classes': ('wide',),
+            'fields': ('name', 'phone', 'dateOfBirth', 'address', 'bio'),
+        }),
+        ('Phân quyền', {
+            'classes': ('wide',),
+            'fields': ('role', 'is_active', 'is_staff'),
+        }),
+    )
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related()
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # Nếu là tạo mới user
+            if 'password1' in form.cleaned_data:
+                obj.set_password(form.cleaned_data['password1'])
+        super().save_model(request, obj, form, change)
 
 # Đăng ký Group model
 @admin.register(Group)
@@ -189,16 +233,4 @@ class HaveAdmin(admin.ModelAdmin):
 class InAdmin(admin.ModelAdmin):
     list_display = ('user', 'group')
 
-class CartItemInline(admin.TabularInline):
-    model = CartItem
-    extra = 0
-    readonly_fields = ('product', 'quantity')
 
-class CartAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'is_checked_out', 'created_at', 'updated_at')
-    list_filter = ('is_checked_out', 'created_at')
-    search_fields = ('user__username',)
-    inlines = [CartItemInline]
-    readonly_fields = ('created_at', 'updated_at')
-
-admin.site.register(Cart, CartAdmin)
