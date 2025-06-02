@@ -52,6 +52,7 @@ const Sidebar = () => {
       to: "/shopping-list",
       icon: "🛍️",
       label: "Danh Sách Mua Sắm",
+
     },
     { to: "/store", icon: "🏪", label: "Cửa Hàng Thực Phẩm" },
     { to: "/fridge", icon: "❄️", label: "Quản Lý Tủ Lạnh" },
@@ -96,6 +97,7 @@ const Sidebar = () => {
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50">
             <NavItem to="/profile" icon="👤" label="Hồ Sơ Cá Nhân" />
+
           </div>
         </div>
 

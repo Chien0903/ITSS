@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Bell, X, AlertTriangle, Clock, Calendar } from "lucide-react";
 import api from "../api";
+
 import { setupNotificationAutoRefresh } from "../utils/notificationUtils";
 
 // Export utility function để backwards compatibility
@@ -8,6 +9,7 @@ export const triggerNotificationRefresh = () => {
   const event = new CustomEvent("fridgeUpdated");
   window.dispatchEvent(event);
 };
+
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
@@ -20,6 +22,7 @@ const NotificationBell = () => {
     try {
       setLoading(true);
       const response = await api.get("/api/fridge/notifications/");
+ 
 
       const items = response.data.items || response.data || [];
       const total =
@@ -38,6 +41,7 @@ const NotificationBell = () => {
   // Load notifications when component mounts
   useEffect(() => {
     fetchNotifications();
+
 
     // Set up interval to refresh notifications every 2 minutes
     const interval = setInterval(fetchNotifications, 2 * 60 * 1000);
@@ -74,6 +78,7 @@ const NotificationBell = () => {
   const handleManualRefresh = () => {
     fetchNotifications();
   };
+
 
   // Get urgency icon and color
   const getUrgencyStyle = (urgency) => {
@@ -152,6 +157,7 @@ const NotificationBell = () => {
                 <X size={18} />
               </button>
             </div>
+
           </div>
 
           {/* Content */}
@@ -169,12 +175,14 @@ const NotificationBell = () => {
                 <p className="text-sm text-gray-600">
                   Không có thực phẩm nào sắp hết hạn trong 3 ngày tới
                 </p>
+
                 <p className="text-xs text-gray-400 mt-2">
                   API: {totalCount} total | State: {notifications.length} items
                 </p>
                 <p className="text-xs text-gray-400">
                   Làm mới lần cuối: {new Date().toLocaleTimeString("vi-VN")}
                 </p>
+
               </div>
             ) : (
               <div className="divide-y divide-gray-100">

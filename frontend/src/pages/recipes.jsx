@@ -510,11 +510,14 @@ const Recipes = () => {
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     {searchTerm && (
+
                       <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto border rounded bg-white shadow-lg z-50">
+
                         {filteredIngredients.length > 0 ? (
                           filteredIngredients.map((ingredient) => (
                             <div
                               key={ingredient.productID}
+
                               className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center gap-3"
                               onClick={() => handleSelectIngredient(ingredient)}
                             >
@@ -553,7 +556,7 @@ const Recipes = () => {
                             <p className="text-xs mt-1">
                               Ví dụ: Mua loại tươi, không quá chín
                             </p>
-                          </div>
+             </div>
                         )}
                       </div>
                     )}
