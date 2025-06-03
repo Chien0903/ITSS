@@ -10,7 +10,7 @@ const AddProduct = () => {
     name: "",
     description: "",
     original_price: 0,
-    discount: 0, // Phần trăm giảm giá
+    discount: 0,
     category: "",
     shelfLife: 30,
     unit: "kg",
@@ -19,17 +19,25 @@ const AddProduct = () => {
   const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [fromRecipes, setFromRecipes] = useState(false);
 
-
-
+  // Check if navigated from Recipes
   useEffect(() => {
-    // Lấy danh sách categories từ backend
+    const savedFormData = localStorage.getItem("recipeFormData");
+    if (savedFormData) {
+      setFromRecipes(true);
+    }
+  }, []);
+
+  // Fetch categories
+  useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await api.get("/api/categories/");
         setCategories(res.data);
       } catch (error) {
         console.error("Lỗi khi lấy danh mục:", error);
+        setMessage("Lỗi khi tải danh mục!");
       }
     };
     fetchCategories();
@@ -61,17 +69,26 @@ const AddProduct = () => {
       submitFormData.append("unit", formData.unit);
       submitFormData.append("shelfLife", formData.shelfLife);
       submitFormData.append("category", formData.category);
+      submitFormData.append("isCustom", false);
 
       if (formData.image) {
         submitFormData.append("image", formData.image);
       }
 
-      await api.post("/api/products/", submitFormData, {
+      const response = await api.post("/api/products/", submitFormData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       setMessage("Tạo sản phẩm thành công!");
-      setTimeout(() => navigate("/store"), 1500);
+
+      // Redirect based on origin
+      if (fromRecipes) {
+        // Redirect back to Recipes with new productID
+        setTimeout(() => navigate(`/recipes?newProductID=${response.data.data.productID}`), 1500);
+      } else {
+        // Standalone behavior: redirect to store or stay on page
+        setTimeout(() => navigate("/store"), 1500); // Adjust to your store route
+      }
     } catch (error) {
       console.error("Lỗi:", error);
       setMessage("Lỗi khi tạo sản phẩm!");
@@ -84,8 +101,6 @@ const AddProduct = () => {
     const file = e.target.files?.[0];
     if (file) {
       setFormData({ ...formData, image: file });
-
-      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target.result);
@@ -99,7 +114,7 @@ const AddProduct = () => {
     setFormData({ ...formData, image: null });
   };
 
-  // Tính giá sau khi giảm
+  // Calculate discounted price
   const calculateDiscountedPrice = () => {
     if (formData.discount > 0 && formData.original_price > 0) {
       return formData.original_price * (1 - formData.discount / 100);
@@ -107,7 +122,7 @@ const AddProduct = () => {
     return formData.original_price;
   };
 
-  // Tính số tiền được giảm
+  // Calculate discount amount
   const calculateDiscountAmount = () => {
     return formData.original_price - calculateDiscountedPrice();
   };
@@ -120,11 +135,11 @@ const AddProduct = () => {
     <div className="space-y-6 max-w-4xl mx-auto p-6">
       <div className="flex items-center space-x-4">
         <Link
-          to="/store"
+          to={fromRecipes ? "/recipes" : "/store"} // Adjust based on origin
           className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại cửa hàng
+          {fromRecipes ? "Quay lại công thức" : "Quay lại cửa hàng"}
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">Thêm sản phẩm mới</h1>
       </div>
@@ -184,7 +199,7 @@ const AddProduct = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, category: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue"
                     required
                   >
                     <option value="">Chọn danh mục</option>
@@ -198,8 +213,6 @@ const AddProduct = () => {
                     ))}
                   </select>
                 </div>
-
-                
               </div>
             </div>
           </div>
@@ -394,9 +407,6 @@ const AddProduct = () => {
                           <span className="text-sm text-gray-500 line-through">
                             Giá gốc: {formData.original_price.toLocaleString()}đ
                           </span>
-                          {/* <span className="text-sm text-gray-500">
-                            /{formData.unit}
-                          </span> */}
                         </div>
                         <p className="text-xs text-green-600">
                           Tiết kiệm: {discountAmount.toLocaleString()}đ
@@ -407,9 +417,6 @@ const AddProduct = () => {
                         <span className="font-bold text-gray-900 text-lg">
                           {formData.original_price.toLocaleString()}đ
                         </span>
-                        {/* <span className="text-sm text-gray-500">
-                          /{formData.unit}
-                        </span> */}
                       </div>
                     )}
                   </div>
