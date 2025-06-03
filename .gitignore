@@ -7,3 +7,5 @@ backend/api/views/__pycache__
 backend/backend/__pycache__
 env/
 backend/env
+backend/api/management/__pycache__
+backend/api/tests/__pycache__
