@@ -116,7 +116,11 @@ const Plans = () => {
           group_id: groupId,
         },
       });
+<<<<<<< HEAD
 
+=======
+      console.log("response:", response.data);
+>>>>>>> 8caed133a60c6080316ed04f11eba974d7671a89
       if (response.data.success && response.data.data.length > 0) {
         const organizedData = organizeMealPlansByWeek(
           response.data.data,

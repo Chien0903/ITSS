@@ -6,12 +6,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework import routers
-from ..views.recipe import IsIngredientView, RecipeView
+#from ..views.recipe import IsIngredientView, RecipeView
 
 
-router = routers.DefaultRouter()
-router.register(r'recipes', RecipeView)
-router.register(r'ingredients', IsIngredientView)
+#router = routers.DefaultRouter()
+#router.register(r'recipes', RecipeView)
+#router.register(r'ingredients', IsIngredientView)
 
 
 urlpatterns = [
@@ -23,7 +23,6 @@ urlpatterns = [
     path('products/<int:pk>/price/', ProductPriceView.as_view(), name='product-price'),
     path("products/search/", ProductCatalogSearchView.as_view(), name="product-search"), #Thêm vào để tìm kiếm
     path('categories/', CategoriesView.as_view(), name='categories'),
-    path('categories/<int:pk>/', CategoriesDetailView.as_view(), name='category-detail'),
     # Group URLs
     path('groups/', include('api.urls.group')),
     path('users/', UserListView.as_view(), name='user-list'),
@@ -37,5 +36,5 @@ urlpatterns = [
     # Meal Plan URLs
     path('meal-plans/', include('api.urls.meal_plan')),
     #Recipe + Ingredients
-    path('', include(router.urls))
+    #path('', include(router.urls))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
