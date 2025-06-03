@@ -13,6 +13,7 @@ from .models.meal_plan import MealPlan
 from .models.have import Have
 from .models.in_model import In
 from .models.ingredient import Ingredient
+from .models.favorite_recipe import FavoriteRecipe
 
 # Đăng ký User model
 @admin.register(User)
@@ -236,5 +237,12 @@ class HaveAdmin(admin.ModelAdmin):
 @admin.register(In)
 class InAdmin(admin.ModelAdmin):
     list_display = ('user', 'group')
+
+# Đăng ký FavoriteRecipe model
+@admin.register(FavoriteRecipe)
+class FavoriteRecipeAdmin(admin.ModelAdmin):
+    list_display = ('user', 'recipe', 'created_at')
+    search_fields = ('user__email', 'user__name', 'recipe__recipeName')
+    list_filter = ('created_at',)
 
 

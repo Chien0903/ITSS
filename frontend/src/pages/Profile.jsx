@@ -11,7 +11,6 @@ const Profile = () => {
   const [editData, setEditData] = useState({});
   const [stats, setStats] = useState({
     mealPlans: 0,
-    products: 0,
     recipes: 0,
     groups: 0,
   });
@@ -96,21 +95,18 @@ const Profile = () => {
       const { userId } = getUserInfo();
 
       // Gọi parallel các API để lấy thống kê
-      const [mealPlansResponse, recipesResponse, shoppingListsResponse] =
+      const [mealPlansResponse, favoriteRecipesResponse] =
         await Promise.allSettled([
           // Lấy kế hoạch bữa ăn của user
           api.get("/api/meal-plans/", {
             params: { user_id: userId },
           }),
-          // Lấy danh sách công thức (tổng số)
-          api.get("/api/recipes/"),
-          // Lấy danh sách shopping lists của user
-          api.get("/api/shopping-lists/"),
+          // Lấy danh sách công thức yêu thích
+          api.get("/api/favorite-recipes/"),
         ]);
 
       let newStats = {
         mealPlans: 0,
-        products: 0,
         recipes: 0,
         groups: 1,
       };
@@ -123,58 +119,14 @@ const Profile = () => {
         newStats.mealPlans = mealPlansResponse.value.data.data.length;
       }
 
-      // Xử lý kết quả recipes
+      // Xử lý kết quả favorite recipes
       if (
-        recipesResponse.status === "fulfilled" &&
-        recipesResponse.value.data
+        favoriteRecipesResponse.status === "fulfilled" &&
+        favoriteRecipesResponse.value.data &&
+        favoriteRecipesResponse.value.data.success
       ) {
-        // Nếu response có cấu trúc success/data thì dùng data, nếu không thì dùng trực tiếp
-        const recipesData =
-          recipesResponse.value.data.results ||
-          recipesResponse.value.data.data ||
-          recipesResponse.value.data;
-        if (Array.isArray(recipesData)) {
-          newStats.recipes = recipesData.length;
-        } else {
-          newStats.recipes = 42; // Fallback
-        }
-      }
-
-      // Xử lý kết quả shopping lists
-      if (
-        shoppingListsResponse.status === "fulfilled" &&
-        shoppingListsResponse.value.data
-      ) {
-        const shoppingLists = shoppingListsResponse.value.data;
-        if (Array.isArray(shoppingLists)) {
-          // Đếm tổng số items trong tất cả shopping lists
-          let totalItems = 0;
-
-          // Gọi API để lấy chi tiết từng shopping list và đếm items
-          const itemsPromises = shoppingLists.map(async (list) => {
-            try {
-              const detailResponse = await api.get(
-                `/api/shopping-lists/${list.listID}/`
-              );
-              return detailResponse.data.items
-                ? detailResponse.data.items.length
-                : 0;
-            } catch (error) {
-              console.error(
-                `Error fetching details for list ${list.listID}:`,
-                error
-              );
-              return 0;
-            }
-          });
-
-          const itemsCounts = await Promise.allSettled(itemsPromises);
-          totalItems = itemsCounts.reduce((sum, result) => {
-            return sum + (result.status === "fulfilled" ? result.value : 0);
-          }, 0);
-
-          newStats.products = totalItems;
-        }
+        const favs = favoriteRecipesResponse.value.data.favorite_recipes;
+        newStats.recipes = Array.isArray(favs) ? favs.length : 0;
       }
 
       setStats(newStats);
@@ -183,8 +135,7 @@ const Profile = () => {
       // Sử dụng dữ liệu giả nếu API lỗi
       setStats({
         mealPlans: 18,
-        products: 156,
-        recipes: 42,
+        recipes: 5,
         groups: 3,
       });
     } finally {
@@ -558,18 +509,12 @@ const Profile = () => {
           {statsLoading ? (
             <div className="text-center py-8">Đang tải thống kê...</div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-3">
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
                   {stats.mealPlans}
                 </div>
                 <div className="text-sm text-gray-600">Kế hoạch bữa ăn</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {stats.products}
-                </div>
-                <div className="text-sm text-gray-600">Sản phẩm mua sắm</div>
               </div>
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
