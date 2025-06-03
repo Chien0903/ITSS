@@ -11,3 +11,4 @@ python-dotenv
 cloudinary
 pytest
 pytest-django
+Pillow
