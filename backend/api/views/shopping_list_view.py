@@ -6,10 +6,8 @@ from django.shortcuts import get_object_or_404
 from ..models.shopping_list import ShoppingList
 from ..models.add_to_list import AddToList
 from ..serializers.shopping_serializers import ShoppingListSerializer, AddToListSerializer
-<<<<<<< HEAD
-=======
 from django.db.models import Sum, Count
->>>>>>> 8caed133a60c6080316ed04f11eba974d7671a89
+
 
 class ShoppingListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -158,8 +156,7 @@ class ToggleItemStatusView(APIView):
             'message': 'Cập nhật trạng thái thành công',
             'data': AddToListSerializer(item).data
         })
-<<<<<<< HEAD
-=======
+
 
 from django.db.models import Sum, F, FloatField, ExpressionWrapper
 
@@ -207,5 +204,6 @@ class PurchasedStatsByCategoryView(APIView):
             }
             for s in stats
         ]
+
         return Response(data)
->>>>>>> 8caed133a60c6080316ed04f11eba974d7671a89
+
