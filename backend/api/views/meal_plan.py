@@ -116,16 +116,29 @@ class MealPlanDetailView(APIView):
                 'success': False,
                 'message': 'Kế hoạch bữa ăn không tồn tại'
             }, status=status.HTTP_404_NOT_FOUND)
-        
+
         serializer = MealPlanSerializer(meal_plan, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
+            # Xử lý cập nhật danh sách món ăn
+            planned_meals = request.data.get('planned_meals', [])
+            # Xóa hết các món cũ
+            Have.objects.filter(plan=meal_plan).delete()
+            # Thêm lại các món mới
+            for meal in planned_meals:
+                recipe_id = meal.get('recipe_id')
+                if recipe_id:
+                    try:
+                        recipe = Recipe.objects.get(recipeID=recipe_id)
+                        Have.objects.create(plan=meal_plan, recipe=recipe)
+                    except Recipe.DoesNotExist:
+                        pass
             return Response({
                 'success': True,
                 'message': 'Cập nhật kế hoạch thành công',
                 'data': serializer.data
             })
-        
+
         return Response({
             'success': False,
             'errors': serializer.errors
