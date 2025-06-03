@@ -290,7 +290,7 @@ const Fridge = () => {
   }, [groupId, activeTab]);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       {error && !isModalOpen && <p className="text-red-500 mb-4">{error}</p>}
       {isLoading ? (
         <p className="text-gray-500">Đang tải...</p>
