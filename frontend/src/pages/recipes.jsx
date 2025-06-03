@@ -26,14 +26,14 @@ const Recipes = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Restore form state and add new ingredient if redirected from AddProduct
+  // Khôi phục dữ liệu form và thêm nguyên liệu mới nếu quay lại từ trang Thêm sản phẩm (AddProduct)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const newProductID = params.get("newProductID");
     const savedFormData = localStorage.getItem("recipeFormData");
 
     if (newProductID) {
-      // Fetch the newly created product
+      // Lấy ra các nguyên liệu mới tạotạo
       const fetchNewProduct = async () => {
         try {
           const response = await api.get(`/api/products/${newProductID}/`);
@@ -67,7 +67,7 @@ const Recipes = () => {
         description: parsedData.description,
         instruction: parsedData.instruction,
         ingredients: parsedData.ingredients,
-        image: null, // File cannot be persisted, user must re-upload
+        image: null, 
       });
       setImagePreview(parsedData.imagePreview || "");
       setIsAddModalOpen(true);
@@ -119,7 +119,7 @@ const Recipes = () => {
     setFilteredRecipes(filtered);
   };
 
-  // Handle search for catalog ingredients
+  // Handle search cho catalog ingredients
   const handleSearch = async (e) => {
     const term = e.target.value;
     setSearchTerm(term);
@@ -359,7 +359,9 @@ const Recipes = () => {
             Thêm công thức
           </button>
         )}
-        <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 text-sm rounded-lg">
+        <button 
+        onClick={() => window.location.href = '/fridge'}
+        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 text-sm rounded-lg">
           Gợi ý từ tủ lạnh
         </button>
       </div>
