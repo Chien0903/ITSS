@@ -44,10 +44,20 @@ const Login = ({ onLogin }) => {
         }, 1000);
       }
     } catch (err) {
-      console.error("Login error:", err);
+      // Xử lý lỗi trả về từ backend
+      const errors = err.response?.data || {};
+      let fieldErrors = [];
+      if (errors.email) {
+        fieldErrors.push({ name: "email", errors: [errors.email] });
+      }
+      if (errors.password) {
+        fieldErrors.push({ name: "password", errors: [errors.password] });
+      }
+      if (fieldErrors.length > 0) {
+        form.setFields(fieldErrors);
+      }
       message.error({
-        content:
-          err.response?.data?.message || "Email hoặc mật khẩu không chính xác.",
+        content: errors.message || "Email hoặc mật khẩu không chính xác.",
         duration: 4,
       });
     } finally {

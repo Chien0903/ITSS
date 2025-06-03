@@ -149,7 +149,8 @@ const SelectGroup = () => {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(userSearchText.toLowerCase()) &&
+      (user.name.toLowerCase().includes(userSearchText.toLowerCase()) ||
+        user.email.toLowerCase().includes(userSearchText.toLowerCase())) &&
       !selectedUsers.some((selectedUser) => selectedUser.id === user.id)
   );
 

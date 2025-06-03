@@ -6,6 +6,9 @@ import api from "../api";
 const AddShoppingList = () => {
   const navigate = useNavigate();
 
+  // Lấy group_id từ localStorage khi khởi tạo
+  const groupId = localStorage.getItem("selectedGroup") || 1;
+
   const [listData, setListData] = useState({
     name: "",
     description: "",
@@ -13,7 +16,7 @@ const AddShoppingList = () => {
     totalEstimatedPrice: 0,
     createdDate: new Date(),
     type: "day",
-    group: 1,
+    group: groupId,
   });
 
   const [currentItem, setCurrentItem] = useState({
@@ -152,13 +155,19 @@ const AddShoppingList = () => {
       return;
     }
 
+    const quantity = currentItem.quantity || 1;
+    const estimatedPrice = currentItem.estimatedPrice
+      ? parseFloat(currentItem.estimatedPrice)
+      : 0;
+    const totalPrice = estimatedPrice * quantity;
+
     const newItem = {
       ...currentItem,
       id: editingItemId || Date.now().toString(),
       isCompleted: false,
-      estimatedPrice: currentItem.estimatedPrice
-        ? parseFloat(currentItem.estimatedPrice)
-        : 0,
+      estimatedPrice: estimatedPrice,
+      quantity: quantity,
+      totalPrice: totalPrice,
     };
 
     if (editingItemId) {
@@ -166,7 +175,7 @@ const AddShoppingList = () => {
         item.id === editingItemId ? newItem : item
       );
       const newTotal = updatedItems.reduce(
-        (total, item) => total + (item.estimatedPrice || 0),
+        (total, item) => total + (item.totalPrice || 0),
         0
       );
 
@@ -181,7 +190,7 @@ const AddShoppingList = () => {
         ...prev,
         items: [...prev.items, newItem],
         totalEstimatedPrice:
-          prev.totalEstimatedPrice + (newItem.estimatedPrice || 0),
+          prev.totalEstimatedPrice + (newItem.totalPrice || 0),
       }));
     }
 
@@ -202,7 +211,7 @@ const AddShoppingList = () => {
       ...prev,
       items: prev.items.filter((item) => item.id !== itemId),
       totalEstimatedPrice:
-        prev.totalEstimatedPrice - (removedItem?.estimatedPrice || 0),
+        prev.totalEstimatedPrice - (removedItem?.totalPrice || 0),
     }));
   };
 
@@ -243,7 +252,12 @@ const AddShoppingList = () => {
     setError("");
 
     try {
-      const createdList = await createShoppingList(listData);
+      // Lấy group_id mới nhất từ localStorage trước khi lưu
+      const currentGroupId = localStorage.getItem("selectedGroup") || 1;
+      const createdList = await createShoppingList({
+        ...listData,
+        group: currentGroupId,
+      });
       console.log("Created shopping list:", createdList);
 
       const addedItems = [];
@@ -1491,7 +1505,25 @@ Tổng số mặt hàng: ${listData.items.length}
                                     fontWeight: "500",
                                   }}
                                 >
-                                  ~{item.estimatedPrice.toLocaleString()}đ
+                                  ~
+                                  {item.totalPrice
+                                    ? item.totalPrice.toLocaleString()
+                                    : (
+                                        item.estimatedPrice * item.quantity
+                                      ).toLocaleString()}
+                                  đ
+                                  {item.quantity > 1 && (
+                                    <span
+                                      style={{
+                                        color: "#6b7280",
+                                        fontSize: 12,
+                                        marginLeft: 4,
+                                      }}
+                                    >
+                                      ({item.estimatedPrice.toLocaleString()}đ x{" "}
+                                      {item.quantity})
+                                    </span>
+                                  )}
                                 </p>
                               )}
                             </div>
@@ -1622,7 +1654,25 @@ Tổng số mặt hàng: ${listData.items.length}
                                   fontWeight: "500",
                                 }}
                               >
-                                ~{item.estimatedPrice.toLocaleString()}đ
+                                ~
+                                {item.totalPrice
+                                  ? item.totalPrice.toLocaleString()
+                                  : (
+                                      item.estimatedPrice * item.quantity
+                                    ).toLocaleString()}
+                                đ
+                                {item.quantity > 1 && (
+                                  <span
+                                    style={{
+                                      color: "#6b7280",
+                                      fontSize: 12,
+                                      marginLeft: 4,
+                                    }}
+                                  >
+                                    ({item.estimatedPrice.toLocaleString()}đ x{" "}
+                                    {item.quantity})
+                                  </span>
+                                )}
                               </p>
                             )}
                           </div>

@@ -8,14 +8,20 @@ from ..models.add_to_list import AddToList
 from ..serializers.shopping_serializers import ShoppingListSerializer, AddToListSerializer
 from django.db.models import Sum, Count
 
-
 class ShoppingListView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        """Lấy danh sách shopping lists của user"""
+        """Lấy danh sách shopping lists của group mà user đang tham gia"""
         user = request.user
-        shopping_lists = ShoppingList.objects.filter(user=user).order_by('-createdAt')
+        group_id = request.query_params.get('group_id')
+        if not group_id:
+            return Response({'message': 'Thiếu group_id'}, status=400)
+        # (Tùy chọn) Kiểm tra user có thuộc group này không
+        # from ..models.in_model import In
+        # if not In.objects.filter(user=user, group_id=group_id).exists():
+        #     return Response({'message': 'Bạn không thuộc group này'}, status=403)
+        shopping_lists = ShoppingList.objects.filter(group=group_id).order_by('-createdAt')
         serializer = ShoppingListSerializer(shopping_lists, many=True)
         return Response(serializer.data)
     
@@ -42,14 +48,16 @@ class ShoppingListDetailView(APIView):
     
     def get(self, request, list_id):
         """Xem chi tiết shopping list và items"""
-        shopping_list = get_object_or_404(ShoppingList, listID=list_id, user=request.user)
+        shopping_list = get_object_or_404(ShoppingList, listID=list_id)
+        # (Tùy chọn) Kiểm tra user có thuộc group này không:
+        # from ..models.in_model import In
+        # if not In.objects.filter(user=request.user, group=shopping_list.group).exists():
+        #     return Response({'message': 'Bạn không thuộc group này'}, status=403)
         items = AddToList.objects.filter(list=shopping_list)
-        
         # Tính toán thống kê
         total_items = items.count()
         purchased_items = items.filter(status='purchased').count()
         progress = (purchased_items / total_items * 100) if total_items > 0 else 0
-        
         return Response({
             'list': ShoppingListSerializer(shopping_list).data,
             'items': AddToListSerializer(items, many=True).data,
@@ -91,12 +99,10 @@ class AddToListView(APIView):
     
     def post(self, request, list_id):
         """Thêm item vào shopping list"""
-        shopping_list = get_object_or_404(ShoppingList, listID=list_id, user=request.user)
-        
+        shopping_list = get_object_or_404(ShoppingList, listID=list_id)
         data = request.data.copy()
         data['list'] = shopping_list.listID
         data['status'] = 'pending'  # Mặc định là pending
-        
         serializer = AddToListSerializer(data=data)
         if serializer.is_valid():
             item = serializer.save()
@@ -104,7 +110,6 @@ class AddToListView(APIView):
                 'message': 'Thêm sản phẩm thành công',
                 'data': AddToListSerializer(item).data
             }, status=status.HTTP_201_CREATED)
-        
         return Response({
             'message': 'Có lỗi xảy ra khi thêm sản phẩm',
             'errors': serializer.errors
@@ -115,9 +120,8 @@ class AddToListDetailView(APIView):
     
     def put(self, request, list_id, item_id):
         """Cập nhật item trong shopping list (quantity, status)"""
-        shopping_list = get_object_or_404(ShoppingList, listID=list_id, user=request.user)
+        shopping_list = get_object_or_404(ShoppingList, listID=list_id)
         item = get_object_or_404(AddToList, id=item_id, list=shopping_list)
-        
         serializer = AddToListSerializer(item, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -125,7 +129,6 @@ class AddToListDetailView(APIView):
                 'message': 'Cập nhật sản phẩm thành công',
                 'data': serializer.data
             })
-        
         return Response({
             'message': 'Có lỗi xảy ra khi cập nhật',
             'errors': serializer.errors
@@ -133,7 +136,7 @@ class AddToListDetailView(APIView):
     
     def delete(self, request, list_id, item_id):
         """Xóa item khỏi shopping list"""
-        shopping_list = get_object_or_404(ShoppingList, listID=list_id, user=request.user)
+        shopping_list = get_object_or_404(ShoppingList, listID=list_id)
         item = get_object_or_404(AddToList, id=item_id, list=shopping_list)
         item.delete()
         return Response({
@@ -145,18 +148,15 @@ class ToggleItemStatusView(APIView):
     
     def patch(self, request, list_id, item_id):
         """Toggle status của item (pending <-> purchased)"""
-        shopping_list = get_object_or_404(ShoppingList, listID=list_id, user=request.user)
+        shopping_list = get_object_or_404(ShoppingList, listID=list_id)
         item = get_object_or_404(AddToList, id=item_id, list=shopping_list)
-        
         # Toggle status
         item.status = 'purchased' if item.status == 'pending' else 'pending'
         item.save()
-        
         return Response({
             'message': 'Cập nhật trạng thái thành công',
             'data': AddToListSerializer(item).data
         })
-
 
 from django.db.models import Sum, F, FloatField, ExpressionWrapper
 
@@ -204,6 +204,4 @@ class PurchasedStatsByCategoryView(APIView):
             }
             for s in stats
         ]
-
         return Response(data)
-

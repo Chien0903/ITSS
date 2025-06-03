@@ -33,8 +33,12 @@ const MealPlanNew = () => {
   const [selectedMealType, setSelectedMealType] = useState("");
   const [plannedMeals, setPlannedMeals] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [recipes, setRecipes] = useState([]);
-  const [loadingRecipes, setLoadingRecipes] = useState(false);
+
+  // --- Đề xuất món ăn từ tủ lạnh ---
+  const [recommendations, setRecommendations] = useState([]);
+  const pageSize = 4;
+  const [isLoadingRecommend, setIsLoadingRecommend] = useState(true);
+  const [errorRecommend, setErrorRecommend] = useState("");
 
   // Lấy thông tin user và group từ localStorage
   const getUserInfo = () => {
@@ -80,23 +84,23 @@ const MealPlanNew = () => {
     "Chủ nhật",
   ];
 
-  // Fetch danh sách recipes từ API
-  const fetchRecipes = async () => {
-    setLoadingRecipes(true);
+  const fetchRecommendations = async (page = 1) => {
+    setIsLoadingRecommend(true);
+    setErrorRecommend("");
     try {
-      const response = await api.get("/api/recipes/");
-      setRecipes(response.data || []);
-    } catch (error) {
-      console.error("Error fetching recipes:", error);
-      message.error("Không thể tải danh sách món ăn");
+      const params = { page, page_size: pageSize };
+      const response = await api.get("/api/fridge/recommendation/", { params });
+      setRecommendations(response.data.recommendations || []);
+    } catch {
+      setErrorRecommend("Không thể tải gợi ý món ăn. Thử lại sau.");
     } finally {
-      setLoadingRecipes(false);
+      setIsLoadingRecommend(false);
     }
   };
 
   useEffect(() => {
     // Fetch recipes khi component mount
-    fetchRecipes();
+    fetchRecommendations();
   }, []);
 
   // Đọc query params và tự động điền form
@@ -106,6 +110,7 @@ const MealPlanNew = () => {
     const dayParam = searchParams.get("day");
     const dayNameParam = searchParams.get("dayName");
     const editParam = searchParams.get("edit");
+    const plannedMealsParam = searchParams.get("plannedMeals");
 
     console.log("Query params:", {
       dateParam,
@@ -113,6 +118,7 @@ const MealPlanNew = () => {
       dayParam,
       dayNameParam,
       editParam,
+      plannedMealsParam,
     });
 
     if (dateParam) {
@@ -176,8 +182,12 @@ const MealPlanNew = () => {
       setSelectedMealType(mealTypeParam);
     }
 
-    // Nếu có thông tin ngày cụ thể, tự động thêm một planned meal
-    if (dayParam !== null && mealTypeParam) {
+    // Nếu có thông tin ngày cụ thể, tự động thêm một planned meal (chỉ khi không phải edit hoặc không có plannedMealsParam)
+    if (
+      dayParam !== null &&
+      mealTypeParam &&
+      !(editParam === "true" && plannedMealsParam)
+    ) {
       const dayIndex = parseInt(dayParam);
       if (!isNaN(dayIndex)) {
         setPlannedMeals([
@@ -186,6 +196,17 @@ const MealPlanNew = () => {
             recipeId: null,
           },
         ]);
+      }
+    }
+
+    // Nếu là chỉnh sửa và có plannedMeals truyền qua query, set lại plannedMeals
+    if (editParam === "true" && plannedMealsParam) {
+      try {
+        const decoded = decodeURIComponent(plannedMealsParam);
+        const parsed = JSON.parse(decoded);
+        if (Array.isArray(parsed)) setPlannedMeals(parsed);
+      } catch (e) {
+        console.error("Không thể parse plannedMeals từ query", e);
       }
     }
 
@@ -221,7 +242,7 @@ const MealPlanNew = () => {
   };
 
   const handleSave = async () => {
-    console.log("=== handleSave được gọi ===");
+    console.log("=== [DEBUG] BẮT ĐẦU LƯU KẾ HOẠCH ===");
     console.log("planName:", planName);
     console.log("startDate:", startDate);
     console.log("selectedMealType:", selectedMealType);
@@ -266,13 +287,12 @@ const MealPlanNew = () => {
     // Kiểm tra xem có món ăn nào chưa chọn recipe
     const mealsWithoutRecipe = plannedMeals.filter((meal) => !meal.recipeId);
     if (mealsWithoutRecipe.length > 0) {
-      console.log("Warning: Có món chưa chọn recipe");
+      console.log("Warning: Có món chưa chọn recipe", mealsWithoutRecipe);
       message.warning(
         `Có ${mealsWithoutRecipe.length} món chưa chọn công thức. Bạn có muốn tiếp tục?`
       );
     }
 
-    console.log("Bắt đầu setLoading(true)");
     setLoading(true);
 
     try {
@@ -293,10 +313,13 @@ const MealPlanNew = () => {
       const formattedPlannedMeals = plannedMeals.map((meal) => ({
         meal: selectedMealType,
         day: meal.day.toString(), // Backend expects string
-        recipeId: meal.recipeId || null, // Để null nếu không có recipe
+        recipe_id: meal.recipeId || null, // Đổi recipeId thành recipe_id để khớp với backend
       }));
 
-      console.log("formattedPlannedMeals:", formattedPlannedMeals);
+      console.log(
+        "[DEBUG] formattedPlannedMeals gửi lên backend:",
+        formattedPlannedMeals
+      );
 
       const mealPlanData = {
         plan_name: planName.trim(),
@@ -308,13 +331,13 @@ const MealPlanNew = () => {
         user: currentUserInfo.userId,
       };
 
-      console.log("Sending data to backend:", mealPlanData);
+      console.log("[DEBUG] mealPlanData gửi lên backend:", mealPlanData);
 
       const response = await api.post("/api/meal-plans/", mealPlanData);
 
-      console.log("Response từ backend:", response);
-      console.log("Response status:", response.status);
-      console.log("Response data:", response.data);
+      console.log("[DEBUG] Response từ backend:", response);
+      console.log("[DEBUG] Response status:", response.status);
+      console.log("[DEBUG] Response data:", response.data);
 
       if (response.data.success) {
         console.log("Success: Lưu thành công!");
@@ -387,8 +410,84 @@ const MealPlanNew = () => {
     navigate("/meal-planning");
   };
 
+  const [fridgeItems, setFridgeItems] = useState([]);
+
+  // Lấy thực phẩm trong tủ lạnh khi mount
+  useEffect(() => {
+    const fetchFridge = async () => {
+      try {
+        const response = await api.get("/api/fridge/");
+        setFridgeItems(response.data.items || []);
+      } catch {
+        setFridgeItems([]);
+      }
+    };
+    fetchFridge();
+  }, []);
+
+  const [storeProducts, setStoreProducts] = useState([]);
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await api.get("/api/products/");
+        setStoreProducts(res.data || []);
+      } catch {
+        setStoreProducts([]);
+      }
+    };
+    fetchProducts();
+  }, []);
+
   return (
     <div style={{ padding: 24 }}>
+      {/* Đề xuất món ăn từ tủ lạnh */}
+      <Card title="Gợi ý món ăn từ tủ lạnh" style={{ marginBottom: 24 }}>
+        {errorRecommend && <p style={{ color: "red" }}>{errorRecommend}</p>}
+        {isLoadingRecommend ? (
+          <p>Đang tải...</p>
+        ) : recommendations.length > 0 ? (
+          <Row gutter={16}>
+            {recommendations.map((recipe) => (
+              <Col key={recipe.recipeID} xs={24} sm={12} md={6}>
+                <Card
+                  hoverable
+                  cover={
+                    <img
+                      alt={recipe.recipeName}
+                      src={recipe.image || "/images/default.jpg"}
+                      style={{ height: 160, objectFit: "cover" }}
+                      onError={(e) => {
+                        e.target.src = "/images/default.jpg";
+                      }}
+                    />
+                  }
+                  style={{ marginBottom: 16 }}
+                >
+                  <Card.Meta
+                    title={recipe.recipeName}
+                    description={
+                      <>
+                        <div>
+                          Khớp: {recipe.match_percentage}% (
+                          {recipe.matching_ingredients_count}/
+                          {recipe.total_ingredients})
+                        </div>
+                      </>
+                    }
+                  />
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        ) : (
+          <div style={{ textAlign: "center", color: "#888" }}>
+            <span style={{ fontSize: 40 }}>👨‍🍳</span>
+            <p>
+              Hãy thêm nhiều nguyên liệu hơn vào tủ lạnh để nhận gợi ý món ăn
+            </p>
+          </div>
+        )}
+      </Card>
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <Button
@@ -522,27 +621,65 @@ const MealPlanNew = () => {
                     <Select
                       value={meal.recipeId || undefined}
                       style={{ width: "100%" }}
-                      loading={loadingRecipes}
+                      loading={isLoadingRecommend}
                       placeholder={
-                        loadingRecipes ? "Đang tải..." : "Chọn món ăn"
+                        isLoadingRecommend ? "Đang tải..." : "Chọn món ăn"
                       }
                       onChange={(value) =>
                         updatePlannedMeal(index, { recipeId: value })
                       }
                       showSearch
+                      optionLabelProp="label"
                       filterOption={(input, option) =>
-                        option.children
+                        option.children.props["data-search"]
                           .toLowerCase()
                           .includes(input.toLowerCase())
                       }
                       allowClear
                     >
-                      {recipes.map((recipe) => (
+                      {recommendations.map((recipe) => (
                         <Select.Option
                           key={recipe.recipeID}
                           value={recipe.recipeID}
+                          data-search={recipe.recipeName}
+                          label={recipe.recipeName}
                         >
-                          {recipe.recipeName}
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                            data-search={recipe.recipeName}
+                          >
+                            <img
+                              src={recipe.image || "/images/default.jpg"}
+                              alt={recipe.recipeName}
+                              style={{
+                                width: 32,
+                                height: 32,
+                                objectFit: "cover",
+                                borderRadius: 4,
+                                marginRight: 8,
+                              }}
+                              onError={(e) => {
+                                e.target.src = "/images/default.jpg";
+                              }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 500 }}>
+                                {recipe.recipeName}
+                              </div>
+                              {typeof recipe.match_percentage !==
+                                "undefined" && (
+                                <div style={{ fontSize: 12, color: "#888" }}>
+                                  Khớp: {recipe.match_percentage}% (
+                                  {recipe.matching_ingredients_count}/
+                                  {recipe.total_ingredients})
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </Select.Option>
                       ))}
                     </Select>
@@ -571,9 +708,118 @@ const MealPlanNew = () => {
           </Card>
 
           <Card title="Tổng hợp nguyên liệu cần mua">
-            <div style={{ textAlign: "center", color: "#888", padding: 32 }}>
-              <p>Thêm món ăn vào kế hoạch để xem danh sách nguyên liệu</p>
-            </div>
+            {(() => {
+              // Lấy các recipe đã chọn
+              const selectedRecipes = recommendations.filter((r) =>
+                plannedMeals.some((m) => m.recipeId === r.recipeID)
+              );
+              // Gom nguyên liệu cần mua
+              let missingIngredients = [];
+              selectedRecipes.forEach((recipe) => {
+                if (Array.isArray(recipe.ingredient_set)) {
+                  recipe.ingredient_set.forEach((ing) => {
+                    // Kiểm tra đã có trong tủ lạnh chưa
+                    const inFridge = fridgeItems.some(
+                      (item) =>
+                        item.product_id === ing.product.productID ||
+                        item.product_name?.toLowerCase() ===
+                          ing.product.productName.toLowerCase()
+                    );
+                    if (!inFridge) {
+                      missingIngredients.push({
+                        name: ing.product.productName,
+                        quantity: ing.quantity,
+                        unit: ing.unit,
+                        recipe: recipe.recipeName,
+                        productID: ing.product.productID,
+                      });
+                    }
+                  });
+                }
+              });
+              if (plannedMeals.length === 0) {
+                return (
+                  <div
+                    style={{ textAlign: "center", color: "#888", padding: 32 }}
+                  >
+                    <p>Thêm món ăn vào kế hoạch để xem danh sách nguyên liệu</p>
+                  </div>
+                );
+              }
+              if (missingIngredients.length === 0) {
+                return (
+                  <div
+                    style={{ textAlign: "center", color: "#888", padding: 32 }}
+                  >
+                    <p>Bạn đã có đủ nguyên liệu cho các món ăn!</p>
+                  </div>
+                );
+              }
+              return (
+                <ul style={{ padding: 0, listStyle: "none" }}>
+                  {missingIngredients.map((ing, idx) => {
+                    const product = storeProducts.find(
+                      (p) =>
+                        p.productName.toLowerCase() ===
+                          ing.name.toLowerCase() ||
+                        p.productID === ing.productID
+                    );
+                    return (
+                      <li key={idx} style={{ marginBottom: 16 }}>
+                        {product ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                            }}
+                          >
+                            <img
+                              src={product.image || "/images/default.jpg"}
+                              alt={product.productName}
+                              style={{
+                                width: 48,
+                                height: 48,
+                                objectFit: "cover",
+                                borderRadius: 6,
+                              }}
+                            />
+                            <div>
+                              <div style={{ fontWeight: 600 }}>
+                                {product.productName}
+                              </div>
+                              <div style={{ fontSize: 13, color: "#888" }}>
+                                {ing.quantity} {ing.unit} - {ing.recipe}
+                              </div>
+                              <div style={{ fontSize: 13 }}>
+                                Giá:{" "}
+                                <b style={{ color: "#e11d48" }}>
+                                  {Number(
+                                    product.price || product.original_price
+                                  ).toLocaleString()}
+                                  đ
+                                </b>{" "}
+                                / {product.unit}
+                              </div>
+                              {product.description && (
+                                <div style={{ fontSize: 12, color: "#666" }}>
+                                  {product.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span>
+                            <b>{ing.name}</b> ({ing.quantity} {ing.unit}) -{" "}
+                            <i>{ing.recipe}</i>
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              );
+            })()}
           </Card>
         </Col>
         <Col xs={24} lg={8}>

@@ -4,7 +4,11 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255, blank=True)
-    role = models.CharField(max_length=10, choices=[('admin', 'Admin'), ('user', 'User')], default='user')
+    role = models.CharField(max_length=20, choices=[
+        ('admin', 'Admin'),
+        ('housekeeper', 'Nội trợ'),
+        ('member', 'Thành viên')
+    ], default='member')
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     
     # Thêm các trường mới cho profile
@@ -19,6 +23,3 @@ class User(AbstractUser):
     def __str__(self):
         return self.email
 
-    class Meta:
-        verbose_name = "Người dùng"
-        verbose_name_plural = "Người dùng"
