@@ -8,7 +8,7 @@ from .models.product_catalog import ProductCatalog
 from .models.shopping_list import ShoppingList
 from .models.add_to_list import AddToList
 from .models.recipe import Recipe
-from .models.is_ingredient import IsIngredient
+#from .models.is_ingredient import IsIngredient
 from .models.add_to_fridge import AddToFridge
 from .models.meal_plan import MealPlan
 from .models.have import Have

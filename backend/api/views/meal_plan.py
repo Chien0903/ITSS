@@ -9,7 +9,7 @@ from collections import defaultdict
 from ..models.meal_plan import MealPlan
 from ..models.have import Have
 from ..models.recipe import Recipe
-from ..models.is_ingredient import IsIngredient
+from ..models.ingredient import Ingredient
 from ..models.product_catalog import ProductCatalog
 from ..serializers.mealplan_serializers import (
     MealPlanSerializer, 
