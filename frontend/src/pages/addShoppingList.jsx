@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Plus, ShoppingCart, List } from "lucide-react";
 import api from "../api";
 
 const AddShoppingList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Lấy group_id từ localStorage khi khởi tạo
   const groupId = localStorage.getItem("selectedGroup") || 1;
@@ -453,6 +454,35 @@ Tổng số mặt hàng: ${listData.items.length}
         break;
     }
   };
+
+  // Khi vào trang, nếu có location.state.items thì tự động điền vào listData.items (chỉ khi items rỗng)
+  useEffect(() => {
+    if (
+      location.state &&
+      Array.isArray(location.state.items) &&
+      location.state.items.length > 0 &&
+      listData.items.length === 0
+    ) {
+      // Chuyển đổi dữ liệu sang format phù hợp với listData.items
+      const mappedItems = location.state.items.map((item, idx) => ({
+        id: Date.now().toString() + idx,
+        name: item.name,
+        quantity: item.quantity || 1,
+        unit: item.unit || "kg",
+        category: "other",
+        note: item.recipe ? `Cho món: ${item.recipe}` : "",
+        estimatedPrice: "",
+        priority: "medium",
+        isCompleted: false,
+        totalPrice: 0,
+      }));
+      setListData((prev) => ({
+        ...prev,
+        items: mappedItems,
+        totalEstimatedPrice: 0,
+      }));
+    }
+  }, [location.state, listData.items.length]);
 
   return (
     <div

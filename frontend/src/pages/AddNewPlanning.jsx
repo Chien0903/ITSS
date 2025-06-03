@@ -111,6 +111,7 @@ const MealPlanNew = () => {
     const dayNameParam = searchParams.get("dayName");
     const editParam = searchParams.get("edit");
     const plannedMealsParam = searchParams.get("plannedMeals");
+    const planIDParam = searchParams.get("planID");
 
     console.log("Query params:", {
       dateParam,
@@ -119,6 +120,7 @@ const MealPlanNew = () => {
       dayNameParam,
       editParam,
       plannedMealsParam,
+      planIDParam,
     });
 
     if (dateParam) {
@@ -208,6 +210,36 @@ const MealPlanNew = () => {
       } catch (e) {
         console.error("Không thể parse plannedMeals từ query", e);
       }
+    }
+
+    // Nếu là chỉnh sửa và có planID, fetch lại meal plan từ backend
+    if (editParam === "true" && planIDParam) {
+      (async () => {
+        try {
+          const res = await api.get(`/api/meal-plans/${planIDParam}/`);
+          if (res.data && res.data.success && res.data.data) {
+            const plan = res.data.data;
+            setPlanName(plan.plan_name || "");
+            setStartDate(plan.start_date || "");
+            setDescription(plan.description || "");
+            setSelectedMealType(plan.mealType || "");
+            // plannedMeals: chuyển từ recipes sang [{day, recipeId}]
+            if (Array.isArray(plan.recipes) && plan.recipes.length > 0) {
+              setPlannedMeals(
+                plan.recipes.map((r) => ({
+                  day: plan.day_of_week,
+                  recipeId: r.recipeID,
+                }))
+              );
+            } else {
+              setPlannedMeals([]);
+            }
+          }
+        } catch (e) {
+          console.error("Không thể fetch meal plan khi chỉnh sửa", e);
+        }
+      })();
+      return;
     }
 
     // Hiển thị thông báo hướng dẫn
@@ -313,7 +345,7 @@ const MealPlanNew = () => {
       const formattedPlannedMeals = plannedMeals.map((meal) => ({
         meal: selectedMealType,
         day: meal.day.toString(), // Backend expects string
-        recipe_id: meal.recipeId || null, // Đổi recipeId thành recipe_id để khớp với backend
+        recipe_id: meal.recipe_id || meal.recipeId || null, // Để null nếu không có recipe
       }));
 
       console.log(
@@ -333,7 +365,18 @@ const MealPlanNew = () => {
 
       console.log("[DEBUG] mealPlanData gửi lên backend:", mealPlanData);
 
-      const response = await api.post("/api/meal-plans/", mealPlanData);
+      // Nếu là chỉnh sửa, gọi PUT thay vì POST
+      const editParam = searchParams.get("edit");
+      const planIDParam = searchParams.get("planID");
+      let response;
+      if (editParam === "true" && planIDParam) {
+        response = await api.put(
+          `/api/meal-plans/${planIDParam}/`,
+          mealPlanData
+        );
+      } else {
+        response = await api.post("/api/meal-plans/", mealPlanData);
+      }
 
       console.log("[DEBUG] Response từ backend:", response);
       console.log("[DEBUG] Response status:", response.status);
@@ -437,6 +480,11 @@ const MealPlanNew = () => {
     };
     fetchProducts();
   }, []);
+
+  // Hàm tạo danh sách mua sắm và redirect
+  const handleCreateShoppingList = (missingIngredients) => {
+    navigate("/add-shopping-list", { state: { items: missingIngredients } });
+  };
 
   return (
     <div style={{ padding: 24 }}>
@@ -756,68 +804,80 @@ const MealPlanNew = () => {
                 );
               }
               return (
-                <ul style={{ padding: 0, listStyle: "none" }}>
-                  {missingIngredients.map((ing, idx) => {
-                    const product = storeProducts.find(
-                      (p) =>
-                        p.productName.toLowerCase() ===
-                          ing.name.toLowerCase() ||
-                        p.productID === ing.productID
-                    );
-                    return (
-                      <li key={idx} style={{ marginBottom: 16 }}>
-                        {product ? (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 12,
-                            }}
-                          >
-                            <img
-                              src={product.image || "/images/default.jpg"}
-                              alt={product.productName}
+                <>
+                  <ul style={{ padding: 0, listStyle: "none" }}>
+                    {missingIngredients.map((ing, idx) => {
+                      const product = storeProducts.find(
+                        (p) =>
+                          p.productName.toLowerCase() ===
+                            ing.name.toLowerCase() ||
+                          p.productID === ing.productID
+                      );
+                      return (
+                        <li key={idx} style={{ marginBottom: 16 }}>
+                          {product ? (
+                            <div
                               style={{
-                                width: 48,
-                                height: 48,
-                                objectFit: "cover",
-                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 12,
                               }}
-                            />
-                            <div>
-                              <div style={{ fontWeight: 600 }}>
-                                {product.productName}
-                              </div>
-                              <div style={{ fontSize: 13, color: "#888" }}>
-                                {ing.quantity} {ing.unit} - {ing.recipe}
-                              </div>
-                              <div style={{ fontSize: 13 }}>
-                                Giá:{" "}
-                                <b style={{ color: "#e11d48" }}>
-                                  {Number(
-                                    product.price || product.original_price
-                                  ).toLocaleString()}
-                                  đ
-                                </b>{" "}
-                                / {product.unit}
-                              </div>
-                              {product.description && (
-                                <div style={{ fontSize: 12, color: "#666" }}>
-                                  {product.description}
+                            >
+                              <img
+                                src={product.image || "/images/default.jpg"}
+                                alt={product.productName}
+                                style={{
+                                  width: 48,
+                                  height: 48,
+                                  objectFit: "cover",
+                                  borderRadius: 6,
+                                }}
+                              />
+                              <div>
+                                <div style={{ fontWeight: 600 }}>
+                                  {product.productName}
                                 </div>
-                              )}
+                                <div style={{ fontSize: 13, color: "#888" }}>
+                                  {ing.quantity} {ing.unit} - {ing.recipe}
+                                </div>
+                                <div style={{ fontSize: 13 }}>
+                                  Giá:{" "}
+                                  <b style={{ color: "#e11d48" }}>
+                                    {Number(
+                                      product.price || product.original_price
+                                    ).toLocaleString()}
+                                    đ
+                                  </b>{" "}
+                                  / {product.unit}
+                                </div>
+                                {product.description && (
+                                  <div style={{ fontSize: 12, color: "#666" }}>
+                                    {product.description}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <span>
-                            <b>{ing.name}</b> ({ing.quantity} {ing.unit}) -{" "}
-                            <i>{ing.recipe}</i>
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
+                          ) : (
+                            <span>
+                              <b>{ing.name}</b> ({ing.quantity} {ing.unit}) -{" "}
+                              <i>{ing.recipe}</i>
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div style={{ textAlign: "right", marginTop: 16 }}>
+                    <Button
+                      type="primary"
+                      onClick={() =>
+                        handleCreateShoppingList(missingIngredients)
+                      }
+                    >
+                      Tạo danh sách mua sắm
+                    </Button>
+                  </div>
+                </>
               );
             })()}
           </Card>

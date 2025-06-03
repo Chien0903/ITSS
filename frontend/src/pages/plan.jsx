@@ -60,9 +60,13 @@ const Plans = () => {
         meals_by_day[dayKey][plan.mealType] = {
           planID: plan.planID,
           plan_name: plan.plan_name,
-          custom_name: plan.plan_name,
           description: plan.description,
-          recipes: [], // Có thể fetch sau nếu cần
+          recipes: plan.recipes || [],
+          // Lấy tên món đầu tiên nếu có, dùng cho hiển thị nhanh
+          recipe_name:
+            plan.recipes && plan.recipes.length > 0
+              ? plan.recipes[0].recipeName
+              : "",
         };
       }
     });
@@ -350,7 +354,7 @@ const Plans = () => {
                           {mealTime}
                         </div>
                         <div className="text-gray-600 truncate">
-                          {meal.recipe_name || meal.custom_name || "Món ăn"}
+                          {meal.recipe_name || "Món ăn"}
                         </div>
                       </div>
                     ) : (
@@ -421,6 +425,10 @@ const Plans = () => {
 
             <div className="space-y-3">
               <div>
+                <span className="font-medium">📋 Tên kế hoạch:</span>{" "}
+                {selectedMeal.plan_name}
+              </div>
+              <div>
                 <span className="font-medium">📅 Ngày:</span>{" "}
                 {selectedMeal.dayName}, {selectedMeal.fullDate}
               </div>
@@ -428,12 +436,46 @@ const Plans = () => {
                 <span className="font-medium">🍽️ Bữa:</span>{" "}
                 {selectedMeal.mealTime}
               </div>
-              <div>
-                <span className="font-medium">🥘 Món ăn:</span>{" "}
-                {selectedMeal.recipe_name ||
-                  selectedMeal.custom_name ||
-                  "Món ăn"}
-              </div>
+              {/* Danh sách món ăn nếu có */}
+              {selectedMeal.recipes && selectedMeal.recipes.length > 0 ? (
+                <div>
+                  <span className="font-medium">🥘 Danh sách món ăn:</span>
+                  <ul className="list-disc list-inside mt-1 ml-4">
+                    {selectedMeal.recipes.map((recipe) => (
+                      <li
+                        key={recipe.recipeID}
+                        className="flex items-center gap-2 mb-1"
+                      >
+                        {recipe.image && (
+                          <img
+                            src={recipe.image}
+                            alt={recipe.recipeName}
+                            style={{
+                              width: 32,
+                              height: 32,
+                              objectFit: "cover",
+                              borderRadius: 4,
+                            }}
+                          />
+                        )}
+                        <span className="font-semibold">
+                          {recipe.recipeName}
+                        </span>
+                        {recipe.description && (
+                          <span className="text-gray-500 ml-2 text-xs">
+                            {recipe.description}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <div>
+                  <span className="font-medium">🥘 Món ăn:</span>{" "}
+                  {selectedMeal.recipe_name || "Món ăn"}
+                </div>
+              )}
               {selectedMeal.description && (
                 <div>
                   <span className="font-medium">📝 Mô tả:</span>{" "}
@@ -464,13 +506,20 @@ const Plans = () => {
                 onClick={() => {
                   setShowMealModal(false);
 
-                  // Lấy plannedMeals cho ngày/bữa này (chỉ 1 món)
-                  const plannedMeals = [
-                    {
-                      day: selectedMeal.dayIndex,
-                      recipeId: selectedMeal.recipeId || selectedMeal.recipeID,
-                    },
-                  ];
+                  // Chuẩn bị plannedMeals đúng định dạng
+                  const plannedMeals =
+                    selectedMeal.recipes && selectedMeal.recipes.length > 0
+                      ? selectedMeal.recipes.map((recipe) => ({
+                          day: selectedMeal.dayIndex,
+                          recipe_id: recipe.recipeID,
+                        }))
+                      : [
+                          {
+                            day: selectedMeal.dayIndex,
+                            recipe_id:
+                              selectedMeal.recipeID || selectedMeal.recipeId,
+                          },
+                        ];
                   const plannedMealsStr = encodeURIComponent(
                     JSON.stringify(plannedMeals)
                   );
@@ -492,9 +541,9 @@ const Plans = () => {
                   );
                   const formattedDate = targetDate.format("YYYY-MM-DD");
 
-                  // Navigate với plannedMeals
+                  // Navigate với plannedMeals và planID
                   navigate(
-                    `/add-new-planning?date=${formattedDate}&mealType=${mealType}&day=${selectedMeal.dayIndex}&edit=true&plannedMeals=${plannedMealsStr}`
+                    `/add-new-planning?date=${formattedDate}&mealType=${mealType}&day=${selectedMeal.dayIndex}&edit=true&planID=${selectedMeal.planID}&plannedMeals=${plannedMealsStr}`
                   );
                 }}
                 className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
