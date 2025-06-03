@@ -341,7 +341,7 @@ const Recipes = () => {
   };
 
   return (
-    <div className="space-y-3 max-w-4xl mx-auto p-6">
+    <div className="space-y-3 max-w-6xl mx-auto p-6">
       <div className="flex items-center space-x-4">
         <h1 className="text-3xl font-bold text-gray-900">Công thức nấu ăn</h1>
       </div>
