@@ -8,6 +8,7 @@ from ..models.add_to_list import AddToList
 from ..serializers.shopping_serializers import ShoppingListSerializer, AddToListSerializer
 from django.db.models import Sum, Count
 
+
 class ShoppingListView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -156,6 +157,7 @@ class ToggleItemStatusView(APIView):
             'data': AddToListSerializer(item).data
         })
 
+
 from django.db.models import Sum, F, FloatField, ExpressionWrapper
 
 class PurchasedShoppingStatsView(APIView):
@@ -202,4 +204,6 @@ class PurchasedStatsByCategoryView(APIView):
             }
             for s in stats
         ]
+
         return Response(data)
+
