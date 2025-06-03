@@ -33,15 +33,6 @@ const Plans = () => {
   const organizeMealPlansByWeek = (mealPlans, startDate, endDate) => {
     const meals_by_day = {};
 
-    console.log("=== ORGANIZING MEAL PLANS ===");
-    console.log(
-      "Week range:",
-      startDate.toISOString().split("T")[0],
-      "to",
-      endDate.toISOString().split("T")[0]
-    );
-    console.log("Total meal plans:", mealPlans.length);
-
     mealPlans.forEach((plan) => {
       // Chuyển đổi start_date thành Date object và reset thời gian về 00:00:00
       const planDate = new Date(plan.start_date);
@@ -66,8 +57,6 @@ const Plans = () => {
           meals_by_day[dayKey] = {};
         }
 
-        console.log("  - Adding meal:", plan.mealType, "to", dayKey);
-
         meals_by_day[dayKey][plan.mealType] = {
           planID: plan.planID,
           plan_name: plan.plan_name,
@@ -75,16 +64,6 @@ const Plans = () => {
           description: plan.description,
           recipes: [], // Có thể fetch sau nếu cần
         };
-      } else {
-        console.log("  ❌ Plan outside week range");
-        console.log(
-          "    planDate >= compareStartDate:",
-          planDate >= compareStartDate
-        );
-        console.log(
-          "    planDate <= compareEndDate:",
-          planDate <= compareEndDate
-        );
       }
     });
 
@@ -101,11 +80,6 @@ const Plans = () => {
   };
 
   const fetchWeeklyMealPlan = useCallback(async () => {
-    console.log("=== FETCH WEEKLY MEAL PLAN ===");
-    console.log("currentDate:", currentDate);
-    console.log("currentDate string:", currentDate.toISOString().split("T")[0]);
-    console.log("currentDate getDay():", currentDate.getDay());
-
     setLoading(true);
     try {
       const startDate = getWeekStartDate(currentDate);
@@ -117,9 +91,6 @@ const Plans = () => {
         },
       });
 
-      console.log("response:", response.data);
-
-
       if (response.data.success && response.data.data.length > 0) {
         const organizedData = organizeMealPlansByWeek(
           response.data.data,
@@ -128,11 +99,9 @@ const Plans = () => {
         );
         setWeeklyMealPlan(organizedData);
       } else {
-        console.log("No meal plan data or unsuccessful response");
         setWeeklyMealPlan(null);
       }
-    } catch (error) {
-      console.error("Error fetching weekly meal plan:", error);
+    } catch {
       setWeeklyMealPlan(null);
     } finally {
       setLoading(false);
@@ -140,17 +109,8 @@ const Plans = () => {
   }, [currentDate, groupId]);
 
   const getWeekStartDate = (date) => {
-    console.log("=== GETWEEKSTARTDATE DEBUG ===");
-    console.log("Input date:", date);
-
     // Sử dụng Day.js để tính toán ngày đầu tuần (Thứ 2)
     const inputDate = dayjs(date);
-    console.log(
-      "Day.js input date:",
-      inputDate.format("YYYY-MM-DD"),
-      "day of week:",
-      inputDate.day()
-    );
 
     // Trong Day.js: 0=CN, 1=T2, 2=T3, 3=T4, 4=T5, 5=T6, 6=T7
     // Tính ngày Thứ 2 đầu tuần
@@ -158,13 +118,6 @@ const Plans = () => {
       inputDate.day() === 0
         ? inputDate.subtract(6, "day") // Nếu là CN thì lùi 6 ngày
         : inputDate.subtract(inputDate.day() - 1, "day"); // Nếu khác thì lùi (day - 1) ngày
-
-    console.log(
-      "Monday (week start):",
-      mondayOfWeek.format("YYYY-MM-DD"),
-      "day of week:",
-      mondayOfWeek.day()
-    );
 
     return mondayOfWeek.toDate();
   };
@@ -174,25 +127,10 @@ const Plans = () => {
     const dates = [];
     const fullDates = [];
 
-    console.log("=== GET WEEK DATES DEBUG ===");
     const mondayDayjs = dayjs(startDate);
-    console.log(
-      "startDate (Monday):",
-      mondayDayjs.format("YYYY-MM-DD"),
-      "day:",
-      mondayDayjs.day()
-    );
 
     for (let i = 0; i < 7; i++) {
       const date = mondayDayjs.add(i, "day");
-      console.log(
-        `Day ${i}:`,
-        date.format("YYYY-MM-DD"),
-        "day of week:",
-        date.day(),
-        "date:",
-        date.date()
-      );
       dates.push(date.date());
       fullDates.push(date.toDate());
     }
@@ -255,10 +193,6 @@ const Plans = () => {
   const handleMealClick = (dayIndex, mealTime) => {
     const meal = getMealForDayAndTime(dayIndex, mealTime);
 
-    console.log("=== HANDLE MEAL CLICK DEBUG ===");
-    console.log("dayIndex received:", dayIndex);
-    console.log("mealTime:", mealTime);
-
     if (meal) {
       // Nếu có món ăn, hiển thị chi tiết
       showMealDetails(meal, dayIndex, mealTime);
@@ -275,18 +209,10 @@ const Plans = () => {
 
       // Sử dụng Day.js để tính toán ngày chính xác
       const weekStart = dayjs(getWeekStartDate(currentDate));
-      console.log("weekStart (Day.js):", weekStart.format("YYYY-MM-DD"));
-      console.log("weekStart day of week:", weekStart.day()); // Should be 1 (Monday)
 
       // Tính ngày đích bằng Day.js
       const targetDate = weekStart.add(dayIndex, "day");
       const formattedDate = targetDate.format("YYYY-MM-DD");
-
-      console.log("targetDate calculation (Day.js method):");
-      console.log("  weekStart:", weekStart.format("YYYY-MM-DD"));
-      console.log("  + dayIndex:", dayIndex, "days");
-      console.log("  = targetDate:", formattedDate);
-      console.log("  targetDate day of week:", targetDate.day());
 
       // Lấy tên ngày
       const dayNames = [
@@ -299,14 +225,8 @@ const Plans = () => {
         "Chủ nhật",
       ];
       const dayName = dayNames[dayIndex];
-      console.log("dayName from array:", dayName);
 
       // Verify: kiểm tra ngày thực tế của targetDate
-      console.log(
-        "targetDate day of week:",
-        targetDate.day(),
-        "(should match dayIndex + 1 or 0 for Sunday)"
-      );
 
       // Navigate với query params (thêm dayName để debug)
       navigate(
@@ -544,6 +464,17 @@ const Plans = () => {
                 onClick={() => {
                   setShowMealModal(false);
 
+                  // Lấy plannedMeals cho ngày/bữa này (chỉ 1 món)
+                  const plannedMeals = [
+                    {
+                      day: selectedMeal.dayIndex,
+                      recipeId: selectedMeal.recipeId || selectedMeal.recipeID,
+                    },
+                  ];
+                  const plannedMealsStr = encodeURIComponent(
+                    JSON.stringify(plannedMeals)
+                  );
+
                   // Chuyển đổi mealTime sang mealType
                   const mealTypeMap = {
                     Sáng: "breakfast",
@@ -553,13 +484,6 @@ const Plans = () => {
                   const mealType =
                     mealTypeMap[selectedMeal.mealTime] || "breakfast";
 
-                  console.log(
-                    "Edit button - selectedMeal.mealTime:",
-                    selectedMeal.mealTime,
-                    "-> mealType:",
-                    mealType
-                  );
-
                   // Sử dụng Day.js để tính toán ngày thực tế
                   const weekStart = dayjs(getWeekStartDate(currentDate));
                   const targetDate = weekStart.add(
@@ -568,9 +492,9 @@ const Plans = () => {
                   );
                   const formattedDate = targetDate.format("YYYY-MM-DD");
 
-                  // Navigate với query params
+                  // Navigate với plannedMeals
                   navigate(
-                    `/add-new-planning?date=${formattedDate}&mealType=${mealType}&day=${selectedMeal.dayIndex}&edit=true`
+                    `/add-new-planning?date=${formattedDate}&mealType=${mealType}&day=${selectedMeal.dayIndex}&edit=true&plannedMeals=${plannedMealsStr}`
                   );
                 }}
                 className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"

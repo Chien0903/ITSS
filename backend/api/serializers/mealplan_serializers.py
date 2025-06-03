@@ -4,10 +4,17 @@ from ..models.have import Have
 from .recipe_serializers import RecipeSerializer
 
 class MealPlanSerializer(serializers.ModelSerializer):
+    recipes = serializers.SerializerMethodField()
+    
     class Meta:
         model = MealPlan
-        fields = ['planID', 'plan_name', 'start_date', 'description', 'mealType', 'day_of_week', 'group', 'user', 'created_at', 'updated_at']
+        fields = ['planID', 'plan_name', 'start_date', 'description', 'mealType', 'day_of_week', 'group', 'user', 'recipes', 'created_at', 'updated_at']
         read_only_fields = ['planID', 'created_at', 'updated_at']
+    
+    def get_recipes(self, obj):
+        have_relations = Have.objects.filter(plan=obj)
+        recipes = [relation.recipe for relation in have_relations]
+        return RecipeSerializer(recipes, many=True).data
 
 class MealPlanDetailSerializer(serializers.ModelSerializer):
     recipes = serializers.SerializerMethodField()
@@ -95,8 +102,8 @@ class MealPlanCreateSerializer(serializers.Serializer):
                 print(f"Created meal plan: {meal_plan}")
                 meal_plans.append(meal_plan)
                 
-                # Nếu có recipeId, tạo relation trong Have table
-                recipe_id = meal_data.get('recipeId')
+                # Nếu có recipe_id, tạo relation trong Have table
+                recipe_id = meal_data.get('recipe_id')
                 if recipe_id:
                     try:
                         from ..models.recipe import Recipe

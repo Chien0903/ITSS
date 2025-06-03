@@ -52,6 +52,25 @@ class MealPlanListView(APIView):
         
         if serializer.is_valid():
             meal_plans = serializer.save()
+            # Lưu các recipe từ plannedMeals vào bảng Have
+            planned_meals = request.data.get('planned_meals', [])
+            print(f"planned_meals: {planned_meals}")
+            
+            for meal_plan in meal_plans:
+                for meal in planned_meals:
+                    recipe_id = meal.get('recipe_id')
+                    print(f"Processing recipe_id: {recipe_id}")
+                    if recipe_id:
+                        try:
+                            recipe = Recipe.objects.get(recipeID=recipe_id)
+                            have_relation, created = Have.objects.get_or_create(
+                                plan=meal_plan,
+                                recipe=recipe
+                            )
+                            print(f"Created Have relation: {created}")
+                        except Recipe.DoesNotExist:
+                            print(f"Recipe not found with ID: {recipe_id}")
+                            pass
             return Response({
                 'success': True,
                 'message': 'Tạo kế hoạch bữa ăn thành công',

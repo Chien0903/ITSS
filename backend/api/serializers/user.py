@@ -10,9 +10,14 @@ def validate_email(value):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    role = serializers.ChoiceField(
+        choices=[('housekeeper', 'Nội trợ'), ('member', 'Thành viên')],
+        default='member'
+    )
+
     class Meta:
         model = User
-        fields = ['email', 'name', 'password']
+        fields = ['email', 'name', 'password', 'role']
 
     def create(self, validated_data):
         password = validated_data.pop('password')

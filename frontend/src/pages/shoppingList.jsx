@@ -19,7 +19,15 @@ const ShoppingList = () => {
     try {
       setIsLoading(true);
       setError("");
-      const response = await api.get("/api/shopping-lists/");
+      const groupId = localStorage.getItem("selectedGroup");
+      if (!groupId) {
+        setError("Không xác định được group hiện tại. Vui lòng chọn nhóm!");
+        setIsLoading(false);
+        return;
+      }
+      const response = await api.get(
+        `/api/shopping-lists/?group_id=${groupId}`
+      );
       setLists(response.data);
 
       // Fetch stats cho từng list

@@ -9,12 +9,14 @@ import {
   message,
   Space,
   Divider,
+  Radio,
 } from "antd";
 import {
   UserOutlined,
   MailOutlined,
   LockOutlined,
   UserAddOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
@@ -181,6 +183,38 @@ const Register = () => {
               placeholder="Nhập email của bạn"
               style={{ borderRadius: 8 }}
             />
+          </Form.Item>
+
+          <Form.Item
+            name="role"
+            label={
+              <Space>
+                <TeamOutlined />
+                <span>Vai trò</span>
+              </Space>
+            }
+            rules={[{ required: true, message: "Vui lòng chọn vai trò" }]}
+          >
+            <Radio.Group>
+              <Space direction="vertical">
+                <Radio value="housekeeper">
+                  <Space>
+                    <span style={{ fontWeight: 500 }}>Nội trợ</span>
+                    <Text type="secondary">
+                      - Quản lý bữa ăn và công thức nấu ăn
+                    </Text>
+                  </Space>
+                </Radio>
+                <Radio value="member">
+                  <Space>
+                    <span style={{ fontWeight: 500 }}>Thành viên</span>
+                    <Text type="secondary">
+                      - Tham gia và sử dụng các tính năng cơ bản
+                    </Text>
+                  </Space>
+                </Radio>
+              </Space>
+            </Radio.Group>
           </Form.Item>
 
           <Form.Item
