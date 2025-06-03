@@ -548,50 +548,60 @@ const Fridge = () => {
           </div>
 
           {isDetailsModalOpen && selectedRecipe && (
-            <div className="fixed inset-0 bg-transparent backdrop-blur-md flex items-center justify-center z-50">
-              <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl flex max-h-[90vh] overflow-y-auto">
-                <div className="w-1/2">
-                  <img
-                    src={selectedRecipe.image || "/images/default.jpg"}
-                    alt={selectedRecipe.recipeName}
-                    className="w-full h-[500px] object-cover rounded"
-                    onError={(e) => { e.target.src = "/images/default.jpg"; }}
-                  />
+          <div className="fixed inset-0 bg-transparent backdrop-blur-md flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-5xl flex max-h-[90vh] overflow-y-auto">
+              <div className="w-1/2">
+                <img
+                  src={selectedRecipe.image || "/images/default.jpg"}
+                  alt={selectedRecipe.recipeName}
+                  className="w-full h-[500px] object-cover rounded"
+                  onError={(e) => { e.target.src = "/images/default.jpg"; }}
+                />
+              </div>
+              <div className="w-1/2 pl-8">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-3xl font-semibold">
+                    {selectedRecipe.recipeName}
+                  </h2>
                 </div>
-                <div className="w-1/2 pl-8">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-3xl font-semibold">
-                      {selectedRecipe.recipeName}
-                    </h2>
-                  </div>
-                  <p className="text-gray-600 mt-3 text-lg">
-                    {selectedRecipe.description || "Không có mô tả"}
-                  </p>
-                  <h3 className="text-xl font-semibold mt-6">Nguyên liệu</h3>
-                  <div className="flex flex-wrap gap-3 mt-3">
-                    {selectedRecipe.ingredient_set.map((ing) => (
+                <p className="text-gray-600 mt-3 text-lg">
+                  {selectedRecipe.description || "Không có mô tả"}
+                </p>
+                <h3 className="text-xl font-semibold mt-6">Nguyên liệu</h3>
+                <div className="flex flex-wrap gap-3 mt-3">
+                  {selectedRecipe.ingredient_set.map((ing) => {
+                    // Check if the ingredient matches any item in fridgeItems
+                    const isMatching = fridgeItems.some(
+                      (item) =>
+                        item.product_id === ing.product.productID ||
+                        item.product_name.toLowerCase() === ing.product.productName.toLowerCase()
+                    );
+                    return (
                       <span
                         key={ing.product.productID}
-                        className="px-3 py-1 rounded text-base bg-gray-100 text-gray-600"
+                        className={`px-3 py-1 rounded text-base ${
+                          isMatching ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                        }`}
                       >
                         {ing.product.productName}
                       </span>
-                    ))}
-                  </div>
-                  <h3 className="text-xl font-semibold mt-6">Hướng dẫn</h3>
-                  <p className="text-gray-600 mt-3 text-lg whitespace-pre-line">
-                    {selectedRecipe.instruction || "Không có hướng dẫn"}
-                  </p>
-                  <button
-                    onClick={() => setIsDetailsModalOpen(false)}
-                    className="mt-6 bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded-lg"
-                  >
-                    Đóng
-                  </button>
+                    );
+                  })}
                 </div>
+                <h3 className="text-xl font-semibold mt-6">Hướng dẫn</h3>
+                <p className="text-gray-600 mt-3 text-lg whitespace-pre-line">
+                  {selectedRecipe.instruction || "Không có hướng dẫn"}
+                </p>
+                <button
+                  onClick={() => setIsDetailsModalOpen(false)}
+                  className="mt-6 bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded-lg"
+                >
+                  Đóng
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           <div className="flex gap-2 mb-4">
             <button
