@@ -116,7 +116,10 @@ const Plans = () => {
           group_id: groupId,
         },
       });
+
       console.log("response:", response.data);
+
+
       if (response.data.success && response.data.data.length > 0) {
         const organizedData = organizeMealPlansByWeek(
           response.data.data,
