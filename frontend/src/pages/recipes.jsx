@@ -25,6 +25,8 @@ const Recipes = () => {
   const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   // Khôi phục dữ liệu form và thêm nguyên liệu mới nếu quay lại từ trang Thêm sản phẩm (AddProduct)
   useEffect(() => {
@@ -67,7 +69,7 @@ const Recipes = () => {
         description: parsedData.description,
         instruction: parsedData.instruction,
         ingredients: parsedData.ingredients,
-        image: null, 
+        image: null,
       });
       setImagePreview(parsedData.imagePreview || "");
       setIsAddModalOpen(true);
@@ -100,6 +102,21 @@ const Recipes = () => {
     fetchRecipes();
   }, []);
 
+  // Lấy danh sách công thức yêu thích khi load trang
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const res = await api.get("/api/favorite-recipes/");
+        if (res.data && res.data.success) {
+          setFavoriteIds(res.data.favorite_recipes || []);
+        }
+      } catch (e) {
+        // Có thể bỏ qua lỗi nếu chưa đăng nhập
+      }
+    };
+    fetchFavorites();
+  }, []);
+
   // Handle main search
   const handleMainSearch = (e) => {
     const term = e.target.value;
@@ -110,7 +127,9 @@ const Recipes = () => {
     }
     const lowerCaseTerm = term.toLowerCase();
     const filtered = recipes.filter((recipe) => {
-      const matchesRecipeName = recipe.title.toLowerCase().includes(lowerCaseTerm);
+      const matchesRecipeName = recipe.title
+        .toLowerCase()
+        .includes(lowerCaseTerm);
       const matchesIngredients = recipe.ingredients.some((ing) =>
         ing.productName.toLowerCase().includes(lowerCaseTerm)
       );
@@ -149,7 +168,11 @@ const Recipes = () => {
 
   // Select catalog ingredient
   const handleSelectIngredient = (ingredient) => {
-    if (!formData.ingredients.some((ing) => ing.productID === ingredient.productID)) {
+    if (
+      !formData.ingredients.some(
+        (ing) => ing.productID === ingredient.productID
+      )
+    ) {
       setFormData((prev) => ({
         ...prev,
         ingredients: [
@@ -219,7 +242,11 @@ const Recipes = () => {
 
   // Handle delete
   const handleDelete = async () => {
-    if (!window.confirm(`Bạn có chắc muốn xóa công thức "${selectedRecipe.title}"?`))
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn xóa công thức "${selectedRecipe.title}"?`
+      )
+    )
       return;
     try {
       await api.delete(`/api/recipes/${selectedRecipe.id}/`);
@@ -238,7 +265,11 @@ const Recipes = () => {
   // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.recipeName || !formData.description || !formData.instruction) {
+    if (
+      !formData.recipeName ||
+      !formData.description ||
+      !formData.instruction
+    ) {
       setMessage("Vui lòng điền đầy đủ tên món ăn, mô tả và hướng dẫn.");
       return;
     }
@@ -260,9 +291,13 @@ const Recipes = () => {
     try {
       let response;
       if (isEditMode && selectedRecipe) {
-        response = await api.put(`/api/recipes/${selectedRecipe.id}/`, formDataToSend, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        response = await api.put(
+          `/api/recipes/${selectedRecipe.id}/`,
+          formDataToSend,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
         setMessage("Cập nhật công thức thành công");
         setRecipes((prev) =>
           prev.map((recipe) =>
@@ -340,6 +375,23 @@ const Recipes = () => {
     window.location.href = "/add-product";
   };
 
+  // Toggle favorite
+  const toggleFavorite = async (recipeId) => {
+    try {
+      if (favoriteIds.includes(recipeId)) {
+        await api.delete("/api/favorite-recipes/", {
+          data: { recipe_id: recipeId },
+        });
+        setFavoriteIds(favoriteIds.filter((id) => id !== recipeId));
+      } else {
+        await api.post("/api/favorite-recipes/", { recipe_id: recipeId });
+        setFavoriteIds([...favoriteIds, recipeId]);
+      }
+    } catch {
+      // Không làm gì
+    }
+  };
+
   return (
     <div className="space-y-3 max-w-6xl mx-auto p-6">
       <div className="flex items-center space-x-4">
@@ -359,10 +411,22 @@ const Recipes = () => {
             Thêm công thức
           </button>
         )}
-        <button 
-        onClick={() => window.location.href = '/fridge'}
-        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 text-sm rounded-lg">
+        <button
+          onClick={() => (window.location.href = "/fridge")}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 text-sm rounded-lg"
+        >
           Gợi ý từ tủ lạnh
+        </button>
+        <button
+          onClick={() => setShowFavoritesOnly((prev) => !prev)}
+          className={
+            (showFavoritesOnly
+              ? "bg-pink-500 hover:bg-pink-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300 text-gray-800") +
+            " px-4 py-2 text-sm rounded-lg"
+          }
+        >
+          {showFavoritesOnly ? "Hiện tất cả" : "Xem công thức yêu thích"}
         </button>
       </div>
 
@@ -385,8 +449,14 @@ const Recipes = () => {
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredRecipes.length > 0 ? (
-          filteredRecipes.map((recipe) => (
+        {(showFavoritesOnly
+          ? filteredRecipes.filter((r) => favoriteIds.includes(r.id))
+          : filteredRecipes
+        ).length > 0 ? (
+          (showFavoritesOnly
+            ? filteredRecipes.filter((r) => favoriteIds.includes(r.id))
+            : filteredRecipes
+          ).map((recipe) => (
             <div
               key={recipe.id}
               className="bg-white border border-gray-200 rounded-lg shadow-sm p-4"
@@ -401,15 +471,45 @@ const Recipes = () => {
               />
               <h2 className="text-xl font-semibold mb-1">{recipe.title}</h2>
               <p className="text-gray-500 text-sm mb-2">{recipe.description}</p>
-              <button
-                onClick={() => {
-                  setSelectedRecipe(recipe);
-                  setIsDetailsModalOpen(true);
-                }}
-                className="mt-3 w-full text-sm text-center border border-gray-300 rounded py-1 hover:bg-gray-50"
-              >
-                Xem chi tiết
-              </button>
+              <div className="flex items-center gap-2 mt-3">
+                <button
+                  onClick={() => toggleFavorite(recipe.id)}
+                  className={
+                    `text-2xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-pink-400 ` +
+                    (favoriteIds.includes(recipe.id)
+                      ? "text-pink-600 drop-shadow-lg scale-125"
+                      : "text-gray-400 hover:text-pink-400 hover:scale-110")
+                  }
+                  title={
+                    favoriteIds.includes(recipe.id)
+                      ? "Bỏ khỏi yêu thích"
+                      : "Thêm vào yêu thích"
+                  }
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    padding: 0,
+                    boxShadow: "none",
+                  }}
+                  aria-label={
+                    favoriteIds.includes(recipe.id)
+                      ? "Bỏ khỏi yêu thích"
+                      : "Thêm vào yêu thích"
+                  }
+                >
+                  {favoriteIds.includes(recipe.id) ? "♥" : "♡"}
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedRecipe(recipe);
+                    setIsDetailsModalOpen(true);
+                  }}
+                  className="flex-1 text-sm text-center border border-gray-300 rounded py-1 hover:bg-gray-50"
+                >
+                  Xem chi tiết
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -503,7 +603,8 @@ const Recipes = () => {
                               </h4>
                               {ingredient.price && (
                                 <p className="text-sm font-semibold text-green-600 mt-1">
-                                  Giá: {ingredient.price.toLocaleString("vi-VN")}đ
+                                  Giá:{" "}
+                                  {ingredient.price.toLocaleString("vi-VN")}đ
                                 </p>
                               )}
                               <p className="text-xs text-gray-500 mt-1">
@@ -653,7 +754,8 @@ const Recipes = () => {
                     key={ing.product.productID} // Sử dụng productID từ product
                     className="px-3 py-1 rounded text-base bg-gray-100 text-gray-600"
                   >
-                    {ing.product.productName} {/* Truy cập productName từ product */}
+                    {ing.product.productName}{" "}
+                    {/* Truy cập productName từ product */}
                   </span>
                 ))}
               </div>

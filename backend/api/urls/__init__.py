@@ -7,6 +7,7 @@ from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework import routers
 from ..views.recipe import IngredientView, RecipeView
+from .favorite_recipe import *
 
 
 router = routers.DefaultRouter()
@@ -36,5 +37,6 @@ urlpatterns = [
     # Meal Plan URLs
     path('meal-plans/', include('api.urls.meal_plan')),
     #Recipe + Ingredients
-    path('', include(router.urls))
+    path('', include(router.urls)),
+    path('favorite-recipes/', include('api.urls.favorite_recipe')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
