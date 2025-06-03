@@ -13,7 +13,7 @@ from .models.add_to_fridge import AddToFridge
 from .models.meal_plan import MealPlan
 from .models.have import Have
 from .models.in_model import In
-
+from .models.ingredient import Ingredient
 
 # Đăng ký User model
 @admin.register(User)
@@ -114,9 +114,14 @@ class RecipeAdmin(admin.ModelAdmin):
     search_fields = ('recipeName',)
 
 # Đăng ký IsIngredient model
-@admin.register(IsIngredient)
-class IsIngredientAdmin(admin.ModelAdmin):
-    list_display = ('product', 'recipe')
+#@admin.register(IsIngredient)
+#class IsIngredientAdmin(admin.ModelAdmin):
+#    list_display = ('product', 'recipe')
+
+#Thay cho Ingredient
+@admin.register(Ingredient)
+class IngredientAdmin(admin.ModelAdmin):
+    list_display=('product', 'recipe')
 
 # Đăng ký AddToFridge model
 @admin.register(AddToFridge)
