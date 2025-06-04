@@ -56,32 +56,6 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Center - Search Bar */}
-      <div className="hidden md:flex flex-1 max-w-md mx-8">
-        <div className="relative w-full">
-          <input
-            type="text"
-            placeholder="Tìm kiếm sản phẩm, công thức..."
-            className="w-full px-4 py-2 pl-10 pr-4 text-gray-700 bg-white border border-green-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-transparent shadow-sm"
-          />
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-            <svg
-              className="w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-        </div>
-      </div>
-
       {/* Right Side */}
       <div className="flex items-center gap-3">
         {isLoggedIn && (
