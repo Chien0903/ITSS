@@ -1,17 +1,18 @@
 from django.urls import path, include
 from ..views.product_catalog_view import ProductCatalogView, ProductCatalogDetailView, ProductPriceView, ProductCatalogSearchView
 from ..views.categories_view import CategoriesView, CategoriesDetailView
-from ..views.user import RegisterView, CustomTokenObtainPairView, UserListView
+from ..views.user import RegisterView, CustomTokenObtainPairView, UserListView, UserMeView, UserUpdateView
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework import routers
-from ..views.recipe import IsIngredientView, RecipeView
+from ..views.recipe import IngredientView, RecipeView
+from .favorite_recipe import *
 
 
 router = routers.DefaultRouter()
 router.register(r'recipes', RecipeView)
-router.register(r'ingredients', IsIngredientView)
+router.register(r'ingredients', IngredientView)
 
 
 urlpatterns = [
@@ -23,16 +24,19 @@ urlpatterns = [
     path('products/<int:pk>/price/', ProductPriceView.as_view(), name='product-price'),
     path("products/search/", ProductCatalogSearchView.as_view(), name="product-search"), #Thêm vào để tìm kiếm
     path('categories/', CategoriesView.as_view(), name='categories'),
-    path('categories/<int:pk>/', CategoriesDetailView.as_view(), name='category-detail'),
     # Group URLs
     path('groups/', include('api.urls.group')),
     path('users/', UserListView.as_view(), name='user-list'),
-    #Cart
-    path('cart/', include('api.urls.cart')),
+    # User profile APIs
+    path('user/me/', UserMeView.as_view(), name='user-me'),
+    path('user/update/', UserUpdateView.as_view(), name='user-update'),
     # Shopping List URLs
     path('shopping-lists/', include('api.urls.shopping_list_urls')),
     #Fridge
     path('fridge/', include('api.urls.fridge')),
+    # Meal Plan URLs
+    path('meal-plans/', include('api.urls.meal_plan')),
     #Recipe + Ingredients
-    path('', include(router.urls))
+    path('', include(router.urls)),
+    path('favorite-recipes/', include('api.urls.favorite_recipe')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

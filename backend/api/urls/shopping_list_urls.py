@@ -4,7 +4,9 @@ from ..views.shopping_list_view import (
     ShoppingListDetailView,
     AddToListView,
     AddToListDetailView,
-    ToggleItemStatusView
+    ToggleItemStatusView,
+    PurchasedShoppingStatsView,
+    PurchasedStatsByCategoryView
 )
 
 urlpatterns = [
@@ -16,4 +18,8 @@ urlpatterns = [
     path('<int:list_id>/items/', AddToListView.as_view(), name='add-to-list'),  # POST: thêm item
     path('<int:list_id>/items/<int:item_id>/', AddToListDetailView.as_view(), name='add-to-list-detail'),  # PUT, DELETE
     path('<int:list_id>/items/<int:item_id>/toggle/', ToggleItemStatusView.as_view(), name='toggle-item-status'),  # PATCH: toggle status
+
+    # Purchased Shopping Stats endpoints
+    path('purchased-shopping-stats/', PurchasedShoppingStatsView.as_view(), name='purchased-shopping-stats'),
+    path('purchased-stats-by-category/', PurchasedStatsByCategoryView.as_view(), name='purchased-stats-by-category'),
 ] 

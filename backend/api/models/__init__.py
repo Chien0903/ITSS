@@ -5,10 +5,10 @@ from .product_catalog import ProductCatalog
 from .add_to_fridge import AddToFridge
 from .fridge import Fridge
 from .add_to_list import AddToList
-from .is_ingredient import IsIngredient
 from .recipe import Recipe
 from .shopping_list import ShoppingList
 from .meal_plan import MealPlan
 from .in_model import In
 from .have import Have
+from .ingredient import Ingredient
 
