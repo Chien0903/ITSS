@@ -9,7 +9,7 @@ class AddToList(models.Model):
 
     list = models.ForeignKey(ShoppingList, on_delete=models.CASCADE)
     product = models.ForeignKey(ProductCatalog, on_delete=models.CASCADE)
-    quantity = models.IntegerField()
+    quantity = models.FloatField()
     status = models.CharField(max_length=10, choices=ListStatus.choices)
 
     class Meta:

@@ -45,13 +45,15 @@ const ShoppingListDetail = () => {
     "bó",
     "ổ",
   ];
-  const [showRefrigeratorConfirmModal, setShowRefrigeratorConfirmModal] = useState(false);
-  const [itemToConfirmRefrigerator, setItemToConfirmRefrigerator] = useState(null);
+  const [showRefrigeratorConfirmModal, setShowRefrigeratorConfirmModal] =
+    useState(false);
+  const [itemToConfirmRefrigerator, setItemToConfirmRefrigerator] =
+    useState(null);
   const [isFridgeModalOpen, setIsFridgeModalOpen] = useState(false);
-  const [newFridgeItem, setNewFridgeItem] = useState(null)
-  const [expiryDate, setExpiryDate] = useState('');
-  const [location, setLocation] = useState('cool');
-  
+  const [newFridgeItem, setNewFridgeItem] = useState(null);
+  const [expiryDate, setExpiryDate] = useState("");
+  const [location, setLocation] = useState("cool");
+
   // API: Lấy chi tiết shopping list
   const fetchShoppingListDetail = async () => {
     try {
@@ -373,57 +375,59 @@ const ShoppingListDetail = () => {
     (item) => item.purchased || item.status === "purchased"
   ).length;
 
-
   // API: Toggle trạng thái item
   const toggleItemStatus = async (itemId) => {
-  try {
-    setIsUpdating(true);
-    const item = list.items.find(item => item.id === itemId);
-    if (!item) throw new Error("Item không tồn tại");
+    try {
+      setIsUpdating(true);
+      const item = list.items.find((item) => item.id === itemId);
+      if (!item) throw new Error("Item không tồn tại");
 
-    const wasPending = !(item.status === "purchased" || item.purchased === true);
+      const wasPending = !(
+        item.status === "purchased" || item.purchased === true
+      );
 
-    await api.patch(`/api/shopping-lists/${id}/items/${itemId}/toggle/`);
+      await api.patch(`/api/shopping-lists/${id}/items/${itemId}/toggle/`);
 
-    const updatedItems = list.items.map(i => {
-      if (i.id === itemId) {
-        return { ...i, purchased: !i.purchased };
+      const updatedItems = list.items.map((i) => {
+        if (i.id === itemId) {
+          return { ...i, purchased: !i.purchased };
+        }
+        return i;
+      });
+
+      setList({ ...list, items: updatedItems });
+
+      const nowPurchased =
+        updatedItems.find((i) => i.id === itemId)?.purchased === true;
+
+      if (wasPending && nowPurchased) {
+        // Chuyển từ pending sang purchased => mở modal
+        setItemToConfirmRefrigerator(updatedItems.find((i) => i.id === itemId));
+        setShowRefrigeratorConfirmModal(true);
+      } else {
+        // Không mở modal các trường hợp khác (purchased về pending, hoặc không đổi)
+        setItemToConfirmRefrigerator(null);
+        setShowRefrigeratorConfirmModal(false);
+        fetchShoppingListDetail();
       }
-      return i;
-    });
-
-    setList({ ...list, items: updatedItems });
-
-    const nowPurchased = updatedItems.find(i => i.id === itemId)?.purchased === true;
-
-    if (wasPending && nowPurchased) {
-      // Chuyển từ pending sang purchased => mở modal
-      setItemToConfirmRefrigerator(updatedItems.find(i => i.id === itemId));
-      setShowRefrigeratorConfirmModal(true);
-    } else {
-      // Không mở modal các trường hợp khác (purchased về pending, hoặc không đổi)
-      setItemToConfirmRefrigerator(null);
-      setShowRefrigeratorConfirmModal(false);
-      fetchShoppingListDetail();
+    } catch (error) {
+      console.error("Error toggling item status:", error);
+      alert("Có lỗi xảy ra khi cập nhật trạng thái. Vui lòng thử lại!");
+    } finally {
+      setIsUpdating(false);
     }
-  } catch (error) {
-    console.error("Error toggling item status:", error);
-    alert("Có lỗi xảy ra khi cập nhật trạng thái. Vui lòng thử lại!");
-  } finally {
-    setIsUpdating(false);
-  }
-};
+  };
   //Xử lý thêm vào tủ lạnhlạnh
   const handleConfirmAddToRefrigerator = async (item) => {
     console.log("Confirm item:", item);
     setNewFridgeItem({
-      productName: item.product_details?.productName || '',
+      productName: item.product_details?.productName || "",
       quantity: item.quantity,
-      unit: item.product_details?.unit || '',
+      unit: item.product_details?.unit || "",
       shoppingListItemId: item.id,
     });
-    setExpiryDate('');  // reset ngày hết hạn mỗi lần mở modal
-    setLocation('cool'); // mặc định vị trí là tủ lạnh
+    setExpiryDate(""); // reset ngày hết hạn mỗi lần mở modal
+    setLocation("cool"); // mặc định vị trí là tủ lạnh
     setIsFridgeModalOpen(true);
     setShowRefrigeratorConfirmModal(false); // Đóng confirm modal
     setItemToConfirmRefrigerator(null);
@@ -437,242 +441,96 @@ const ShoppingListDetail = () => {
   };
 
   const handleSubmitFridgeItem = async () => {
-  if (!expiryDate) {
-    alert("Vui lòng chọn ngày hết hạn");
-    return;
-  }
-  try {
-    const payload = {
-      productName: newFridgeItem.productName,
-      quantity: Number(newFridgeItem.quantity), // chuyển về số
-      unit: newFridgeItem.unit,
-      shoppingListItemId: newFridgeItem.shoppingListItemId,
-      expiredDate: expiryDate, // đảm bảo đúng tên trường backend
-      location: location,
-    };
+    if (!expiryDate) {
+      alert("Vui lòng chọn ngày hết hạn");
+      return;
+    }
+    try {
+      const payload = {
+        productName: newFridgeItem.productName,
+        quantity: Number(newFridgeItem.quantity), // chuyển về số
+        unit: newFridgeItem.unit,
+        shoppingListItemId: newFridgeItem.shoppingListItemId,
+        expiredDate: expiryDate, // đảm bảo đúng tên trường backend
+        location: location,
+      };
 
-    console.log("Gửi payload:", payload);
+      console.log("Gửi payload:", payload);
 
-    await api.post('/api/fridge/', payload);
+      await api.post("/api/fridge/", payload);
 
-    setIsFridgeModalOpen(false);
-    setNewFridgeItem(null);
-    setExpiryDate('');
-    setLocation('cool');
-
-  } catch (error) {
-    console.error("Lỗi khi thêm sản phẩm vào tủ lạnh:", error.response?.data || error.message);
-    //alert("Có lỗi xảy ra khi thêm sản phẩm. Vui lòng thử lại.");
-  }
-};
+      setIsFridgeModalOpen(false);
+      setNewFridgeItem(null);
+      setExpiryDate("");
+      setLocation("cool");
+    } catch (error) {
+      console.error(
+        "Lỗi khi thêm sản phẩm vào tủ lạnh:",
+        error.response?.data || error.message
+      );
+      //alert("Có lỗi xảy ra khi thêm sản phẩm. Vui lòng thử lại.");
+    }
+  };
 
   return (
-  <div
-    style={{
-      maxWidth: "1200px",
-      margin: "0 auto",
-      padding: "20px",
-      fontFamily: "system-ui, -apple-system, sans-serif",
-    }}
-  >
-    {/* Header */}
     <div
       style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "30px",
-        flexWrap: "wrap",
-        gap: "15px",
+        maxWidth: "1200px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-        <button
-          onClick={() => navigate("/shopping-list")}
-          disabled={isUpdating}
-          style={{
-            background: "none",
-            border: "1px solid #e5e7eb",
-            borderRadius: "6px",
-            padding: "8px 12px",
-            cursor: isUpdating ? "not-allowed" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            fontSize: "14px",
-            opacity: isUpdating ? 0.6 : 1,
-          }}
-        >
-          ← Quay lại
-        </button>
-        <div>
-          <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
-            {list.listName}
-          </h1>
-          <p
-            style={{
-              margin: "5px 0 0 0",
-              color: "#6b7280",
-              fontSize: "14px",
-            }}
-          >
-            {formatDate(list.date)}
-          </p>
-        </div>
-      </div>
-      <button
-        disabled={isUpdating}
-        style={{
-          background: "#f8fafc",
-          border: "1px solid #e5e7eb",
-          borderRadius: "6px",
-          padding: "10px 16px",
-          cursor: isUpdating ? "not-allowed" : "pointer",
-          fontSize: "14px",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          opacity: isUpdating ? 0.6 : 1,
-        }}
-      >
-        ✏️ Chỉnh sửa
-      </button>
-    </div>
-
-    {/* Stats Cards */}
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: "20px",
-        marginBottom: "30px",
-      }}
-    >
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          padding: "20px",
-          background: "white",
-        }}
-      >
-        <div
-          style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
-        >
-          Tiến độ
-        </div>
-        <div style={{ marginBottom: "10px" }}>
-          <div
-            style={{
-              width: "100%",
-              height: "8px",
-              background: "#f3f4f6",
-              borderRadius: "4px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                width: `${progress}%`,
-                height: "100%",
-                background: "#10b981",
-                borderRadius: "4px",
-                transition: "width 0.3s ease",
-              }}
-            />
-          </div>
-        </div>
-        <div style={{ fontSize: "2rem", fontWeight: "bold" }}>
-          {progress}%
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          padding: "20px",
-          background: "white",
-        }}
-      >
-        <div
-          style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
-        >
-          Tổng sản phẩm
-        </div>
-        <div style={{ fontSize: "2rem", fontWeight: "bold" }}>
-          {totalItems}
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          padding: "20px",
-          background: "white",
-        }}
-      >
-        <div
-          style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
-        >
-          Đã mua
-        </div>
-        <div
-          style={{ fontSize: "2rem", fontWeight: "bold", color: "#059669" }}
-        >
-          {purchasedItems}
-        </div>
-      </div>
-
-      <div
-        style={{
-          border: "1px solid #e5e7eb",
-          borderRadius: "8px",
-          padding: "20px",
-          background: "white",
-        }}
-      >
-        <div
-          style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
-        >
-          Còn lại
-        </div>
-        <div
-          style={{ fontSize: "2rem", fontWeight: "bold", color: "#ea580c" }}
-        >
-          {totalItems - purchasedItems}
-        </div>
-      </div>
-    </div>
-
-    {/* Main Content */}
-    <div
-      style={{
-        border: "1px solid #e5e7eb",
-        borderRadius: "8px",
-        background: "white",
-      }}
-    >
+      {/* Header */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "20px",
-          borderBottom: "1px solid #e5e7eb",
+          marginBottom: "30px",
+          flexWrap: "wrap",
+          gap: "15px",
         }}
       >
-        <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "600" }}>
-          Danh sách sản phẩm
-        </h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+          <button
+            onClick={() => navigate("/shopping-list")}
+            disabled={isUpdating}
+            style={{
+              background: "none",
+              border: "1px solid #e5e7eb",
+              borderRadius: "6px",
+              padding: "8px 12px",
+              cursor: isUpdating ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontSize: "14px",
+              opacity: isUpdating ? 0.6 : 1,
+            }}
+          >
+            ← Quay lại
+          </button>
+          <div>
+            <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "bold" }}>
+              {list.listName}
+            </h1>
+            <p
+              style={{
+                margin: "5px 0 0 0",
+                color: "#6b7280",
+                fontSize: "14px",
+              }}
+            >
+              {formatDate(list.date)}
+            </p>
+          </div>
+        </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
           disabled={isUpdating}
           style={{
-            background: isUpdating ? "#9ca3af" : "#3b82f6",
-            color: "white",
-            border: "none",
+            background: "#f8fafc",
+            border: "1px solid #e5e7eb",
             borderRadius: "6px",
             padding: "10px 16px",
             cursor: isUpdating ? "not-allowed" : "pointer",
@@ -680,592 +538,747 @@ const ShoppingListDetail = () => {
             display: "flex",
             alignItems: "center",
             gap: "8px",
+            opacity: isUpdating ? 0.6 : 1,
           }}
         >
-          ➕ Thêm sản phẩm
+          ✏️ Chỉnh sửa
         </button>
       </div>
 
-      <div style={{ padding: "20px" }}>
-        {/* Add Form */}
-        {showAddForm && (
+      {/* Stats Cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "20px",
+          marginBottom: "30px",
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "20px",
+            background: "white",
+          }}
+        >
           <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              padding: "20px",
-              background: "#f8fafc",
-              marginBottom: "30px",
-            }}
+            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
           >
-            <h3
-              style={{
-                margin: "0 0 15px 0",
-                fontSize: "1.1rem",
-                fontWeight: "600",
-              }}
-            >
-              Thêm sản phẩm mới
-            </h3>
-
+            Tiến độ
+          </div>
+          <div style={{ marginBottom: "10px" }}>
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: "15px",
-                marginBottom: "15px",
+                width: "100%",
+                height: "8px",
+                background: "#f3f4f6",
+                borderRadius: "4px",
+                overflow: "hidden",
               }}
             >
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "5px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
-                >
-                  Tên sản phẩm
-                </label>
-                <input
-                  type="text"
-                  placeholder="Nhập tên sản phẩm"
-                  value={newItem.name}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, name: e.target.value })
-                  }
-                  disabled={isUpdating}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    opacity: isUpdating ? 0.6 : 1,
-                  }}
-                />
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: "100%",
+                  background: "#10b981",
+                  borderRadius: "4px",
+                  transition: "width 0.3s ease",
+                }}
+              />
+            </div>
+          </div>
+          <div style={{ fontSize: "2rem", fontWeight: "bold" }}>
+            {progress}%
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "20px",
+            background: "white",
+          }}
+        >
+          <div
+            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
+          >
+            Tổng sản phẩm
+          </div>
+          <div style={{ fontSize: "2rem", fontWeight: "bold" }}>
+            {totalItems}
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "20px",
+            background: "white",
+          }}
+        >
+          <div
+            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
+          >
+            Đã mua
+          </div>
+          <div
+            style={{ fontSize: "2rem", fontWeight: "bold", color: "#059669" }}
+          >
+            {purchasedItems}
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #e5e7eb",
+            borderRadius: "8px",
+            padding: "20px",
+            background: "white",
+          }}
+        >
+          <div
+            style={{ color: "#6b7280", fontSize: "14px", marginBottom: "10px" }}
+          >
+            Còn lại
+          </div>
+          <div
+            style={{ fontSize: "2rem", fontWeight: "bold", color: "#ea580c" }}
+          >
+            {totalItems - purchasedItems}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div
+        style={{
+          border: "1px solid #e5e7eb",
+          borderRadius: "8px",
+          background: "white",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "20px",
+            borderBottom: "1px solid #e5e7eb",
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "600" }}>
+            Danh sách sản phẩm
+          </h2>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            disabled={isUpdating}
+            style={{
+              background: isUpdating ? "#9ca3af" : "#3b82f6",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              padding: "10px 16px",
+              cursor: isUpdating ? "not-allowed" : "pointer",
+              fontSize: "14px",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            ➕ Thêm sản phẩm
+          </button>
+        </div>
+
+        <div style={{ padding: "20px" }}>
+          {/* Add Form */}
+          {showAddForm && (
+            <div
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                padding: "20px",
+                background: "#f8fafc",
+                marginBottom: "30px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 15px 0",
+                  fontSize: "1.1rem",
+                  fontWeight: "600",
+                }}
+              >
+                Thêm sản phẩm mới
+              </h3>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: "15px",
+                  marginBottom: "15px",
+                }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "5px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Tên sản phẩm
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Nhập tên sản phẩm"
+                    value={newItem.name}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, name: e.target.value })
+                    }
+                    disabled={isUpdating}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      opacity: isUpdating ? 0.6 : 1,
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "5px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Danh mục
+                  </label>
+                  <select
+                    value={newItem.category}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, category: e.target.value })
+                    }
+                    disabled={isUpdating}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      opacity: isUpdating ? 0.6 : 1,
+                    }}
+                  >
+                    {categories.map((category) => (
+                      <option key={category.value} value={category.value}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "5px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Số lượng
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newItem.quantity}
+                    onChange={(e) =>
+                      setNewItem({
+                        ...newItem,
+                        quantity: parseInt(e.target.value) || 1,
+                      })
+                    }
+                    disabled={isUpdating}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      opacity: isUpdating ? 0.6 : 1,
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "5px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                    }}
+                  >
+                    Đơn vị
+                  </label>
+                  <select
+                    value={newItem.unit}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, unit: e.target.value })
+                    }
+                    disabled={isUpdating}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      opacity: isUpdating ? 0.6 : 1,
+                    }}
+                  >
+                    {units.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  onClick={addItem}
+                  disabled={!newItem.name.trim() || isUpdating}
                   style={{
-                    display: "block",
-                    marginBottom: "5px",
+                    background:
+                      !newItem.name.trim() || isUpdating
+                        ? "#9ca3af"
+                        : "#3b82f6",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "10px 16px",
+                    cursor:
+                      !newItem.name.trim() || isUpdating
+                        ? "not-allowed"
+                        : "pointer",
                     fontSize: "14px",
-                    fontWeight: "500",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
-                  Danh mục
-                </label>
-                <select
-                  value={newItem.category}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, category: e.target.value })
-                  }
+                  {isUpdating ? "Đang thêm..." : "➕ Thêm"}
+                </button>
+                <button
+                  onClick={() => setShowAddForm(false)}
                   disabled={isUpdating}
                   style={{
-                    width: "100%",
-                    padding: "10px",
+                    background: "white",
                     border: "1px solid #d1d5db",
                     borderRadius: "6px",
+                    padding: "10px 16px",
+                    cursor: isUpdating ? "not-allowed" : "pointer",
                     fontSize: "14px",
                     opacity: isUpdating ? 0.6 : 1,
                   }}
                 >
-                  {categories.map((category) => (
-                    <option key={category.value} value={category.value}>
-                      {category.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "5px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
-                >
-                  Số lượng
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={newItem.quantity}
-                  onChange={(e) =>
-                    setNewItem({
-                      ...newItem,
-                      quantity: parseInt(e.target.value) || 1,
-                    })
-                  }
-                  disabled={isUpdating}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    opacity: isUpdating ? 0.6 : 1,
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: "5px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
-                >
-                  Đơn vị
-                </label>
-                <select
-                  value={newItem.unit}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, unit: e.target.value })
-                  }
-                  disabled={isUpdating}
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    opacity: isUpdating ? 0.6 : 1,
-                  }}
-                >
-                  {units.map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
-                    </option>
-                  ))}
-                </select>
+                  Hủy
+                </button>
               </div>
             </div>
+          )}
 
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button
-                onClick={addItem}
-                disabled={!newItem.name.trim() || isUpdating}
+          {/* Items by Category */}
+          {Object.entries(groupedItems).map(
+            ([category, categoryItems], index) => {
+              const categoryInfo = getCategoryInfo(category);
+
+              return (
+                <div key={category} style={{ marginBottom: "30px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      marginBottom: "15px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "50%",
+                        background: categoryInfo.color,
+                      }}
+                    />
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: "1.1rem",
+                        fontWeight: "600",
+                      }}
+                    >
+                      {categoryInfo.label}
+                    </h3>
+                    <span
+                      style={{
+                        background: "#f3f4f6",
+                        color: "#374151",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {categoryItems.length}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "6px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Table Header */}
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "50px 1fr 150px 80px 80px",
+                        background: "#f9fafb",
+                        padding: "12px",
+                        borderBottom: "1px solid #e5e7eb",
+                        fontSize: "14px",
+                        fontWeight: "500",
+                        color: "#6b7280",
+                      }}
+                    >
+                      <div>✓</div>
+                      <div>Sản phẩm</div>
+                      <div>Số lượng</div>
+                      <div>Đơn vị</div>
+                      <div>Thao tác</div>
+                    </div>
+
+                    {/* Table Body */}
+                    {categoryItems.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "50px 1fr 150px 80px 80px",
+                          padding: "12px",
+                          borderBottom: "1px solid #e5e7eb",
+                          background: item.purchased ? "#f9fafb" : "white",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <input
+                            type="checkbox"
+                            checked={item.purchased}
+                            onChange={() => toggleItemStatus(item.id)}
+                            disabled={isUpdating}
+                            style={{
+                              width: "16px",
+                              height: "16px",
+                              cursor: isUpdating ? "not-allowed" : "pointer",
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <span
+                            style={{
+                              fontWeight: "500",
+                              textDecoration: item.purchased
+                                ? "line-through"
+                                : "none",
+                              color: item.purchased ? "#9ca3af" : "#374151",
+                            }}
+                          >
+                            {item.name}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                          }}
+                        >
+                          <button
+                            onClick={() =>
+                              updateItemQuantity(item.id, item.quantity - 1)
+                            }
+                            disabled={item.quantity <= 1 || isUpdating}
+                            style={{
+                              background: "white",
+                              border: "1px solid #d1d5db",
+                              borderRadius: "4px",
+                              width: "24px",
+                              height: "24px",
+                              cursor:
+                                item.quantity > 1 && !isUpdating
+                                  ? "pointer"
+                                  : "not-allowed",
+                              fontSize: "12px",
+                              opacity:
+                                item.quantity > 1 && !isUpdating ? 1 : 0.5,
+                            }}
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              updateItemQuantity(
+                                item.id,
+                                parseInt(e.target.value) || 1
+                              )
+                            }
+                            disabled={isUpdating}
+                            style={{
+                              width: "60px",
+                              height: "32px",
+                              textAlign: "center",
+                              border: "1px solid #d1d5db",
+                              borderRadius: "4px",
+                              fontSize: "14px",
+                              opacity: isUpdating ? 0.6 : 1,
+                            }}
+                          />
+                          <button
+                            onClick={() =>
+                              updateItemQuantity(item.id, item.quantity + 1)
+                            }
+                            disabled={isUpdating}
+                            style={{
+                              background: "white",
+                              border: "1px solid #d1d5db",
+                              borderRadius: "4px",
+                              width: "24px",
+                              height: "24px",
+                              cursor: isUpdating ? "not-allowed" : "pointer",
+                              fontSize: "12px",
+                              opacity: isUpdating ? 0.6 : 1,
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div style={{ fontSize: "14px", color: "#6b7280" }}>
+                          {item.product_details?.unit || item.unit || "cái"}
+                        </div>
+
+                        <div>
+                          <button
+                            onClick={() => removeItem(item.id)}
+                            disabled={isUpdating}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: isUpdating ? "not-allowed" : "pointer",
+                              color: isUpdating ? "#9ca3af" : "#ef4444",
+                              fontSize: "16px",
+                              width: "24px",
+                              height: "24px",
+                              borderRadius: "4px",
+                            }}
+                            title="Xóa"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Separator between categories */}
+                  {index < Object.keys(groupedItems).length - 1 && (
+                    <div
+                      style={{
+                        height: "1px",
+                        background: "#e5e7eb",
+                        margin: "20px 0",
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            }
+          )}
+
+          {/* Empty State */}
+          {list.items.length === 0 && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "60px 20px",
+                color: "#9ca3af",
+              }}
+            >
+              <div style={{ fontSize: "48px", marginBottom: "15px" }}>🛒</div>
+              <h3
                 style={{
-                  background:
-                    !newItem.name.trim() || isUpdating
-                      ? "#9ca3af"
-                      : "#3b82f6",
+                  fontSize: "1.1rem",
+                  fontWeight: "600",
+                  margin: "0 0 10px 0",
+                }}
+              >
+                Chưa có sản phẩm nào
+              </h3>
+              <p style={{ margin: "0 0 20px 0", fontSize: "14px" }}>
+                Thêm sản phẩm đầu tiên vào danh sách của bạn
+              </p>
+              <button
+                onClick={() => setShowAddForm(true)}
+                disabled={isUpdating}
+                style={{
+                  background: isUpdating ? "#9ca3af" : "#3b82f6",
                   color: "white",
                   border: "none",
                   borderRadius: "6px",
                   padding: "10px 16px",
-                  cursor:
-                    !newItem.name.trim() || isUpdating
-                      ? "not-allowed"
-                      : "pointer",
+                  cursor: isUpdating ? "not-allowed" : "pointer",
                   fontSize: "14px",
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
+                  margin: "0 auto",
                 }}
               >
-                {isUpdating ? "Đang thêm..." : "➕ Thêm"}
+                ➕ Thêm sản phẩm
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal xác nhận "thêm vào tủ lạnh" */}
+      {showRefrigeratorConfirmModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 50,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "24px",
+              borderRadius: "8px",
+              boxShadow:
+                "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+              width: "100%",
+              maxWidth: "28rem",
+              textAlign: "center",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: "600",
+                marginBottom: "16px",
+                margin: "0 0 16px 0",
+              }}
+            >
+              Đã cập nhật trạng thái sản phẩm!
+            </h2>
+            <p
+              style={{
+                marginBottom: "24px",
+                margin: "0 0 24px 0",
+                color: "#6b7280",
+              }}
+            >
+              Bạn có muốn thêm sản phẩm này vào tủ lạnh không?
+            </p>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-around",
+                gap: "12px",
+              }}
+            >
+              <button
+                onClick={() =>
+                  handleConfirmAddToRefrigerator(itemToConfirmRefrigerator)
+                }
+                style={{
+                  background: "#10b981",
+                  color: "white",
+                  padding: "8px 24px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  transition: "background-color 0.2s",
+                }}
+                onMouseOver={(e) => (e.target.style.background = "#059669")}
+                onMouseOut={(e) => (e.target.style.background = "#10b981")}
+              >
+                Có, thêm vào tủ lạnh
               </button>
               <button
-                onClick={() => setShowAddForm(false)}
-                disabled={isUpdating}
+                onClick={handleCancelAddToRefrigerator}
                 style={{
-                  background: "white",
-                  border: "1px solid #d1d5db",
+                  background: "#d1d5db",
+                  color: "#374151",
+                  padding: "8px 24px",
                   borderRadius: "6px",
-                  padding: "10px 16px",
-                  cursor: isUpdating ? "not-allowed" : "pointer",
+                  border: "none",
+                  cursor: "pointer",
                   fontSize: "14px",
-                  opacity: isUpdating ? 0.6 : 1,
+                  fontWeight: "500",
+                  transition: "background-color 0.2s",
                 }}
+                onMouseOver={(e) => (e.target.style.background = "#9ca3af")}
+                onMouseOut={(e) => (e.target.style.background = "#d1d5db")}
               >
-                Hủy
+                Không
               </button>
             </div>
           </div>
-        )}
-
-        {/* Items by Category */}
-        {Object.entries(groupedItems).map(
-          ([category, categoryItems], index) => {
-            const categoryInfo = getCategoryInfo(category);
-
-            return (
-              <div key={category} style={{ marginBottom: "30px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    marginBottom: "15px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "16px",
-                      height: "16px",
-                      borderRadius: "50%",
-                      background: categoryInfo.color,
-                    }}
-                  />
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: "1.1rem",
-                      fontWeight: "600",
-                    }}
-                  >
-                    {categoryInfo.label}
-                  </h3>
-                  <span
-                    style={{
-                      background: "#f3f4f6",
-                      color: "#374151",
-                      padding: "2px 8px",
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                      fontWeight: "500",
-                    }}
-                  >
-                    {categoryItems.length}
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "6px",
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* Table Header */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "50px 1fr 150px 80px 80px",
-                      background: "#f9fafb",
-                      padding: "12px",
-                      borderBottom: "1px solid #e5e7eb",
-                      fontSize: "14px",
-                      fontWeight: "500",
-                      color: "#6b7280",
-                    }}
-                  >
-                    <div>✓</div>
-                    <div>Sản phẩm</div>
-                    <div>Số lượng</div>
-                    <div>Đơn vị</div>
-                    <div>Thao tác</div>
-                  </div>
-
-                  {/* Table Body */}
-                  {categoryItems.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "50px 1fr 150px 80px 80px",
-                        padding: "12px",
-                        borderBottom: "1px solid #e5e7eb",
-                        background: item.purchased ? "#f9fafb" : "white",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <input
-                          type="checkbox"
-                          checked={item.purchased}
-                          onChange={() => toggleItemStatus(item.id)}
-                          disabled={isUpdating}
-                          style={{
-                            width: "16px",
-                            height: "16px",
-                            cursor: isUpdating ? "not-allowed" : "pointer",
-                          }}
-                        />
-                      </div>
-
-                      <div>
-                        <span
-                          style={{
-                            fontWeight: "500",
-                            textDecoration: item.purchased
-                              ? "line-through"
-                              : "none",
-                            color: item.purchased ? "#9ca3af" : "#374151",
-                          }}
-                        >
-                          {item.name}
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "5px",
-                        }}
-                      >
-                        <button
-                          onClick={() =>
-                            updateItemQuantity(item.id, item.quantity - 1)
-                          }
-                          disabled={item.quantity <= 1 || isUpdating}
-                          style={{
-                            background: "white",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "4px",
-                            width: "24px",
-                            height: "24px",
-                            cursor:
-                              item.quantity > 1 && !isUpdating
-                                ? "pointer"
-                                : "not-allowed",
-                            fontSize: "12px",
-                            opacity:
-                              item.quantity > 1 && !isUpdating ? 1 : 0.5,
-                          }}
-                        >
-                          -
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateItemQuantity(
-                              item.id,
-                              parseInt(e.target.value) || 1
-                            )
-                          }
-                          disabled={isUpdating}
-                          style={{
-                            width: "60px",
-                            height: "32px",
-                            textAlign: "center",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "4px",
-                            fontSize: "14px",
-                            opacity: isUpdating ? 0.6 : 1,
-                          }}
-                        />
-                        <button
-                          onClick={() =>
-                            updateItemQuantity(item.id, item.quantity + 1)
-                          }
-                          disabled={isUpdating}
-                          style={{
-                            background: "white",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "4px",
-                            width: "24px",
-                            height: "24px",
-                            cursor: isUpdating ? "not-allowed" : "pointer",
-                            fontSize: "12px",
-                            opacity: isUpdating ? 0.6 : 1,
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                        {item.product_details?.unit || item.unit || "cái"}
-                      </div>
-
-                      <div>
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          disabled={isUpdating}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: isUpdating ? "not-allowed" : "pointer",
-                            color: isUpdating ? "#9ca3af" : "#ef4444",
-                            fontSize: "16px",
-                            width: "24px",
-                            height: "24px",
-                            borderRadius: "4px",
-                          }}
-                          title="Xóa"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Separator between categories */}
-                {index < Object.keys(groupedItems).length - 1 && (
-                  <div
-                    style={{
-                      height: "1px",
-                      background: "#e5e7eb",
-                      margin: "20px 0",
-                    }}
-                  />
-                )}
-              </div>
-            );
-          }
-        )}
-
-        {/* Empty State */}
-        {list.items.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "60px 20px",
-              color: "#9ca3af",
-            }}
-          >
-            <div style={{ fontSize: "48px", marginBottom: "15px" }}>🛒</div>
-            <h3
-              style={{
-                fontSize: "1.1rem",
-                fontWeight: "600",
-                margin: "0 0 10px 0",
-              }}
-            >
-              Chưa có sản phẩm nào
-            </h3>
-            <p style={{ margin: "0 0 20px 0", fontSize: "14px" }}>
-              Thêm sản phẩm đầu tiên vào danh sách của bạn
-            </p>
-            <button
-              onClick={() => setShowAddForm(true)}
-              disabled={isUpdating}
-              style={{
-                background: isUpdating ? "#9ca3af" : "#3b82f6",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                padding: "10px 16px",
-                cursor: isUpdating ? "not-allowed" : "pointer",
-                fontSize: "14px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                margin: "0 auto",
-              }}
-            >
-              ➕ Thêm sản phẩm
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-
-    {/* Modal xác nhận "thêm vào tủ lạnh" */}
-    {showRefrigeratorConfirmModal && (
-      <div 
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(0, 0, 0, 0.3)",
-          backdropFilter: "blur(4px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 50
-        }}
-      >
-        <div 
-          style={{
-            background: "white",
-            padding: "24px",
-            borderRadius: "8px",
-            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-            width: "100%",
-            maxWidth: "28rem",
-            textAlign: "center"
-          }}
-        >
-          <h2 
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: "600",
-              marginBottom: "16px",
-              margin: "0 0 16px 0"
-            }}
-          >
-            Đã cập nhật trạng thái sản phẩm!
-          </h2>
-          <p 
-            style={{
-              marginBottom: "24px",
-              margin: "0 0 24px 0",
-              color: "#6b7280"
-            }}
-          >
-            Bạn có muốn thêm sản phẩm này vào tủ lạnh không?
-          </p>
-          <div 
-            style={{
-              display: "flex",
-              justifyContent: "space-around",
-              gap: "12px"
-            }}
-          >
-            <button
-              onClick={() => handleConfirmAddToRefrigerator(itemToConfirmRefrigerator)}
-              style={{
-                background: "#10b981",
-                color: "white",
-                padding: "8px 24px",
-                borderRadius: "6px",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "500",
-                transition: "background-color 0.2s"
-              }}
-              onMouseOver={(e) => e.target.style.background = "#059669"}
-              onMouseOut={(e) => e.target.style.background = "#10b981"}
-            >
-              Có, thêm vào tủ lạnh
-            </button>
-            <button
-              onClick={handleCancelAddToRefrigerator}
-              style={{
-                background: "#d1d5db",
-                color: "#374151",
-                padding: "8px 24px",
-                borderRadius: "6px",
-                border: "none",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "500",
-                transition: "background-color 0.2s"
-              }}
-              onMouseOver={(e) => e.target.style.background = "#9ca3af"}
-              onMouseOut={(e) => e.target.style.background = "#d1d5db"}
-            >
-              Không
-            </button>
-          </div>
         </div>
-      </div>
-    )}
-    {isFridgeModalOpen && (
+      )}
+      {isFridgeModalOpen && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-md flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Xác nhận thêm sản phẩm vào tủ lạnh</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Xác nhận thêm sản phẩm vào tủ lạnh
+            </h2>
 
             {/* Ngày hết hạn */}
             <div>
-              <label className="block font-medium text-sm text-gray-700 mb-1">Ngày hết hạn</label>
+              <label className="block font-medium text-sm text-gray-700 mb-1">
+                Ngày hết hạn
+              </label>
               <input
                 type="date"
                 value={expiryDate}
@@ -1276,7 +1289,9 @@ const ShoppingListDetail = () => {
 
             {/* Vị trí */}
             <div className="mt-4">
-              <label className="block font-medium text-sm text-gray-700 mb-1">Vị trí</label>
+              <label className="block font-medium text-sm text-gray-700 mb-1">
+                Vị trí
+              </label>
               <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -1291,9 +1306,9 @@ const ShoppingListDetail = () => {
               <button
                 onClick={() => {
                   setIsFridgeModalOpen(false);
-                  setNewFridgeItem(null);     
-                  setExpiryDate('');           
-                  setLocation('cool');    
+                  setNewFridgeItem(null);
+                  setExpiryDate("");
+                  setLocation("cool");
                 }}
                 className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg"
               >
@@ -1309,6 +1324,7 @@ const ShoppingListDetail = () => {
           </div>
         </div>
       )}
-  </div>
-)};
+    </div>
+  );
+};
 export default ShoppingListDetail;

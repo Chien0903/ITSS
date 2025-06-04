@@ -19,7 +19,15 @@ const ShoppingList = () => {
     try {
       setIsLoading(true);
       setError("");
-      const response = await api.get("/api/shopping-lists/");
+      const groupId = localStorage.getItem("selectedGroup");
+      if (!groupId) {
+        setError("Không xác định được group hiện tại. Vui lòng chọn nhóm!");
+        setIsLoading(false);
+        return;
+      }
+      const response = await api.get(
+        `/api/shopping-lists/?group_id=${groupId}`
+      );
       setLists(response.data);
 
       // Fetch stats cho từng list
@@ -76,15 +84,27 @@ const ShoppingList = () => {
   // Calculate progress for a list
   const calculateProgress = (list) => {
     const stats = listStats[list.listID];
-    return stats ? Math.round(stats.stats.progress) : 0;
+    if (!stats || !stats.stats) return 0;
+
+    const { total_items, purchased_items } = stats.stats;
+    if (total_items === 0) return 0;
+
+    const progress = Math.round((purchased_items / total_items) * 100);
+
+    // Debug logging (có thể xóa sau khi test xong)
+    console.log(
+      `List ${list.listName}: ${purchased_items}/${total_items} = ${progress}%`
+    );
+
+    return Math.min(100, Math.max(0, progress)); // Đảm bảo progress trong khoảng 0-100
   };
 
   // Get list status based on progress
   const getListStatus = (list) => {
     const progress = calculateProgress(list);
-    if (progress === 100) return "completed";
-    if (progress > 0) return "active";
-    return "pending";
+    if (progress === 100) return "completed"; // Đã hoàn thành 100%
+    if (progress > 0 && progress < 100) return "active"; // Đang mua (0% < progress < 100%)
+    return "pending"; // Chưa bắt đầu (progress = 0%)
   };
 
   // Format date
@@ -386,16 +406,16 @@ const ShoppingList = () => {
                   style={{
                     background:
                       status === "completed"
-                        ? "#dcfce7"
+                        ? "#dcfce7" // Xanh lá nhạt cho hoàn thành
                         : status === "active"
-                        ? "#dbeafe"
-                        : "#f3f4f6",
+                        ? "#fef3c7" // Vàng nhạt cho đang mua
+                        : "#f3f4f6", // Xám nhạt cho chưa bắt đầu
                     color:
                       status === "completed"
-                        ? "#166534"
+                        ? "#166534" // Xanh lá đậm
                         : status === "active"
-                        ? "#1e40af"
-                        : "#374151",
+                        ? "#92400e" // Vàng đậm
+                        : "#374151", // Xám đậm
                     padding: "2px 8px",
                     borderRadius: "12px",
                     fontSize: "12px",
@@ -404,10 +424,10 @@ const ShoppingList = () => {
                   }}
                 >
                   {status === "completed"
-                    ? "Hoàn thành"
+                    ? `✅ Hoàn thành (${progress}%)`
                     : status === "active"
-                    ? "Đang mua"
-                    : "Chưa bắt đầu"}
+                    ? `🛒 Đang mua (${progress}%)`
+                    : "⏸️ Chưa bắt đầu"}
                 </span>
               </div>
 
@@ -469,13 +489,13 @@ const ShoppingList = () => {
                       height: "100%",
                       background:
                         progress === 100
-                          ? "#10b981"
+                          ? "#10b981" // Xanh lá cho hoàn thành 100%
                           : progress > 0
-                          ? "#3b82f6"
-                          : "#e5e7eb",
+                          ? "#f59e0b" // Vàng cho đang mua (0% < progress < 100%)
+                          : "#e5e7eb", // Xám cho chưa bắt đầu (0%)
                       borderRadius: "4px",
                       width: `${progress}%`,
-                      transition: "width 0.3s ease",
+                      transition: "width 0.3s ease, background-color 0.3s ease",
                     }}
                   />
                 </div>

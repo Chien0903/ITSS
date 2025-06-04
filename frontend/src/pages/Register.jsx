@@ -1,88 +1,326 @@
 import React, { useState } from "react";
+import {
+  Form,
+  Input,
+  Button,
+  Card,
+  Typography,
+  Checkbox,
+  message,
+  Space,
+  Divider,
+  Radio,
+} from "antd";
+import {
+  UserOutlined,
+  MailOutlined,
+  LockOutlined,
+  UserAddOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
-import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+
+const { Title, Text } = Typography;
 
 const Register = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [form] = Form.useForm();
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onFinish = async (values) => {
+    setLoading(true);
     try {
-      const response = await api.post("/api/register/", formData);
+      const {
+        confirmPassword: _confirmPassword,
+        acceptTerms: _acceptTerms,
+        ...registerData
+      } = values;
+
+      const response = await api.post("/api/register/", registerData);
+
       if (response.status === 201) {
         if (response.data.access && response.data.refresh) {
           localStorage.setItem(ACCESS_TOKEN, response.data.access);
           localStorage.setItem(REFRESH_TOKEN, response.data.refresh);
         }
-        alert("Đăng ký thành công!");
-        navigate("/login");
+
+        message.success({
+          content: "Đăng ký thành công! Chào mừng bạn đến với ứng dụng.",
+          duration: 3,
+        });
+
+        setTimeout(() => {
+          navigate("/login");
+        }, 1500);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Có lỗi xảy ra khi đăng ký");
+      console.error("Registration error:", err);
+      message.error({
+        content:
+          err.response?.data?.message ||
+          "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.",
+        duration: 4,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
+  const validatePassword = (_, value) => {
+    if (!value) {
+      return Promise.reject(new Error("Vui lòng nhập mật khẩu"));
+    }
+    if (value.length < 8) {
+      return Promise.reject(new Error("Mật khẩu phải có ít nhất 8 ký tự"));
+    }
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
+      return Promise.reject(
+        new Error("Mật khẩu phải chứa ít nhất 1 chữ thường, 1 chữ hoa và 1 số")
+      );
+    }
+    return Promise.resolve();
+  };
+
+  const validateConfirmPassword = (_, value) => {
+    if (!value) {
+      return Promise.reject(new Error("Vui lòng xác nhận mật khẩu"));
+    }
+    if (value !== form.getFieldValue("password")) {
+      return Promise.reject(new Error("Mật khẩu xác nhận không khớp"));
+    }
+    return Promise.resolve();
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Đăng Ký</h2>
-        {error && <div className="text-red-500 text-center mb-4">{error}</div>}
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            name="name"
-            placeholder="Họ tên"
-            className="w-full px-4 py-2 border rounded"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            className="w-full px-4 py-2 border rounded"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Mật khẩu"
-            className="w-full px-4 py-2 border rounded"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-          <button
-            type="submit"
-            className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+      }}
+    >
+      <Card
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+          borderRadius: 12,
+        }}
+        bodyStyle={{ padding: "40px 32px" }}
+      >
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 64,
+              height: 64,
+              backgroundColor: "#f0f9ff",
+              borderRadius: "50%",
+              marginBottom: 16,
+            }}
           >
+            <UserAddOutlined style={{ fontSize: 32, color: "#1890ff" }} />
+          </div>
+          <Title level={2} style={{ margin: 0, color: "#1f2937" }}>
             Đăng Ký
-          </button>
-        </form>
-        <p className="text-sm text-center mt-4">
-          Đã có tài khoản?{" "}
-          <a href="/login" className="text-green-500 hover:underline">
-            Đăng nhập
-          </a>
-        </p>
-      </div>
+          </Title>
+          <Text type="secondary" style={{ fontSize: 16 }}>
+            Tạo tài khoản mới để bắt đầu sử dụng ứng dụng
+          </Text>
+        </div>
+
+        <Form
+          form={form}
+          name="register"
+          onFinish={onFinish}
+          layout="vertical"
+          size="large"
+          requiredMark={false}
+        >
+          <Form.Item
+            name="name"
+            label={
+              <Space>
+                <UserOutlined />
+                <span>Họ và tên</span>
+              </Space>
+            }
+            rules={[
+              { required: true, message: "Vui lòng nhập họ và tên" },
+              { min: 2, message: "Tên phải có ít nhất 2 ký tự" },
+            ]}
+          >
+            <Input
+              prefix={<UserOutlined style={{ color: "#bfbfbf" }} />}
+              placeholder="Nhập họ và tên"
+              style={{ borderRadius: 8 }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="email"
+            label={
+              <Space>
+                <MailOutlined />
+                <span>Email</span>
+              </Space>
+            }
+            rules={[
+              { required: true, message: "Vui lòng nhập email" },
+              { type: "email", message: "Email không hợp lệ" },
+            ]}
+          >
+            <Input
+              prefix={<MailOutlined style={{ color: "#bfbfbf" }} />}
+              placeholder="Nhập email của bạn"
+              style={{ borderRadius: 8 }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="role"
+            label={
+              <Space>
+                <TeamOutlined />
+                <span>Vai trò</span>
+              </Space>
+            }
+            rules={[{ required: true, message: "Vui lòng chọn vai trò" }]}
+          >
+            <Radio.Group>
+              <Space direction="vertical">
+                <Radio value="housekeeper">
+                  <Space>
+                    <span style={{ fontWeight: 500 }}>Nội trợ</span>
+                    <Text type="secondary">
+                      - Quản lý bữa ăn và công thức nấu ăn
+                    </Text>
+                  </Space>
+                </Radio>
+                <Radio value="member">
+                  <Space>
+                    <span style={{ fontWeight: 500 }}>Thành viên</span>
+                    <Text type="secondary">
+                      - Tham gia và sử dụng các tính năng cơ bản
+                    </Text>
+                  </Space>
+                </Radio>
+              </Space>
+            </Radio.Group>
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label={
+              <Space>
+                <LockOutlined />
+                <span>Mật khẩu</span>
+              </Space>
+            }
+            rules={[{ validator: validatePassword }]}
+          >
+            <Input.Password
+              prefix={<LockOutlined style={{ color: "#bfbfbf" }} />}
+              placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
+              style={{ borderRadius: 8 }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="confirmPassword"
+            label={
+              <Space>
+                <LockOutlined />
+                <span>Xác nhận mật khẩu</span>
+              </Space>
+            }
+            rules={[{ validator: validateConfirmPassword }]}
+          >
+            <Input.Password
+              prefix={<LockOutlined style={{ color: "#bfbfbf" }} />}
+              placeholder="Nhập lại mật khẩu"
+              style={{ borderRadius: 8 }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="acceptTerms"
+            valuePropName="checked"
+            rules={[
+              {
+                validator: (_, value) =>
+                  value
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error("Bạn phải đồng ý với điều khoản sử dụng")
+                      ),
+              },
+            ]}
+          >
+            <Checkbox>
+              <Text style={{ fontSize: 14 }}>
+                Tôi đồng ý với{" "}
+                <Link
+                  to="/terms"
+                  style={{ color: "#1890ff", textDecoration: "none" }}
+                >
+                  điều khoản sử dụng
+                </Link>{" "}
+                và{" "}
+                <Link
+                  to="/privacy"
+                  style={{ color: "#1890ff", textDecoration: "none" }}
+                >
+                  chính sách bảo mật
+                </Link>
+              </Text>
+            </Checkbox>
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 16 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              block
+              style={{
+                height: 48,
+                borderRadius: 8,
+                fontSize: 16,
+                fontWeight: 500,
+              }}
+            >
+              {loading ? "Đang đăng ký..." : "Đăng Ký"}
+            </Button>
+          </Form.Item>
+        </Form>
+
+        <Divider style={{ margin: "24px 0" }} />
+
+        <div style={{ textAlign: "center" }}>
+          <Text type="secondary" style={{ fontSize: 14 }}>
+            Đã có tài khoản?{" "}
+            <Link
+              to="/login"
+              style={{
+                color: "#1890ff",
+                fontWeight: 500,
+                textDecoration: "none",
+              }}
+            >
+              Đăng nhập ngay
+            </Link>
+          </Text>
+        </div>
+      </Card>
     </div>
   );
 };

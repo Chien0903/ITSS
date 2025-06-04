@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from backend.api.models.user import User
+from ..models.user import User
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -10,9 +10,14 @@ def validate_email(value):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    role = serializers.ChoiceField(
+        choices=[('housekeeper', 'Nội trợ'), ('member', 'Thành viên')],
+        default='member'
+    )
+
     class Meta:
         model = User
-        fields = ['email', 'name', 'password']
+        fields = ['email', 'name', 'password', 'role']
 
     def create(self, validated_data):
         password = validated_data.pop('password')
@@ -40,8 +45,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         except User.DoesNotExist:
             raise serializers.ValidationError({'email': 'Email không tồn tại.'})
 
-        # So sánh plain text
-        if user.password != password:
+        # ✅ Sử dụng check_password để kiểm tra hash password
+        if not user.check_password(password):
             raise serializers.ValidationError({'password': 'Mật khẩu không đúng.'})
 
         # Trick cho SimpleJWT: truyền username = email

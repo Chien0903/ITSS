@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Save, Upload, X } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import api from "../api";
 
 const Recipes = () => {
-  const isAdmin = 1; // Giả sử người dùng là admin
+  const isAdmin = 0; // Giả sử người dùng là admin
+  const location = useLocation();
   const [recipes, setRecipes] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -17,51 +19,81 @@ const Recipes = () => {
     image: null,
   });
   const [imagePreview, setImagePreview] = useState("");
-  const [searchTerm, setSearchTerm] = useState(""); // Dùng cho tìm kiếm nguyên liệu trong modal
-  const [mainSearchTerm, setMainSearchTerm] = useState(""); // Dùng cho thanh tìm kiếm chính
+  const [searchTerm, setSearchTerm] = useState("");
+  const [mainSearchTerm, setMainSearchTerm] = useState("");
   const [filteredIngredients, setFilteredIngredients] = useState([]);
-  const [filteredRecipes, setFilteredRecipes] = useState([]); // Danh sách công thức sau khi lọc
-  const [isFromCatalog, setIsFromCatalog] = useState(false);
-  const [saveToCatalog, setSaveToCatalog] = useState(false);
+  const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  // Khôi phục dữ liệu form và thêm nguyên liệu mới nếu quay lại từ trang Thêm sản phẩm (AddProduct)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const newProductID = params.get("newProductID");
+    const savedFormData = localStorage.getItem("recipeFormData");
+
+    if (newProductID) {
+      // Lấy ra các nguyên liệu mới tạotạo
+      const fetchNewProduct = async () => {
+        try {
+          const response = await api.get(`/api/products/${newProductID}/`);
+          const product = response.data;
+          setFormData((prev) => ({
+            ...prev,
+            ingredients: [
+              ...prev.ingredients,
+              {
+                productID: product.productID,
+                productName: product.productName,
+                unit: product.unit,
+              },
+            ],
+          }));
+          setIsAddModalOpen(true);
+          // Clean up query params
+          window.history.replaceState({}, document.title, location.pathname);
+        } catch (err) {
+          console.error("Error fetching new product:", err);
+          setMessage("Lỗi khi tải thông tin nguyên liệu mới");
+        }
+      };
+      fetchNewProduct();
+    }
+
+    if (savedFormData) {
+      const parsedData = JSON.parse(savedFormData);
+      setFormData({
+        recipeName: parsedData.recipeName,
+        description: parsedData.description,
+        instruction: parsedData.instruction,
+        ingredients: parsedData.ingredients,
+        image: null,
+      });
+      setImagePreview(parsedData.imagePreview || "");
+      setIsAddModalOpen(true);
+      setIsEditMode(parsedData.isEditMode || false);
+      localStorage.removeItem("recipeFormData");
+    }
+  }, [location]);
 
   // Fetch recipes
   useEffect(() => {
     const fetchRecipes = async () => {
       try {
         const response = await api.get("/api/recipes/");
+        console.log("Recipes API response:", response.data);
         const fetchedRecipes = response.data.map((recipe) => ({
           id: recipe.recipeID,
           title: recipe.recipeName,
           description: recipe.description,
           instructions: recipe.instruction,
-          image: recipe.image ? recipe.image : "/images/default.jpg",
-          tags: recipe.recipeName.split(" ").slice(0, 3),
-          liked: false,
-          ingredients: [
-            ...(recipe.isingredient_set
-              ? recipe.isingredient_set.map((ing) => ({
-                  productID: ing.product.productID,
-                  productName: ing.product.productName,
-                  unit: ing.product.unit,
-                  categoryName: ing.product.categoryName || "Null",
-                  isCustom: false,
-                }))
-              : []),
-            ...(recipe.custom_ingredients
-              ? JSON.parse(recipe.custom_ingredients).map((ing) => ({
-                  productID: ing.id,
-                  productName: ing.name,
-                  unit: ing.unit || "unit",
-                  categoryName: ing.categoryName || "Null",
-                  isCustom: true,
-                }))
-              : []),
-          ],
+          image: recipe.image || "/images/default.jpg",
+          ingredients: recipe.ingredient_set,
         }));
         setRecipes(fetchedRecipes);
-        setFilteredRecipes(fetchedRecipes); // Khởi tạo filteredRecipes với toàn bộ danh sách
+        setFilteredRecipes(fetchedRecipes);
       } catch (err) {
         setMessage("Lỗi khi lấy thực đơn");
         console.error(err);
@@ -70,43 +102,52 @@ const Recipes = () => {
     fetchRecipes();
   }, []);
 
+  // Lấy danh sách công thức yêu thích khi load trang
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const res = await api.get("/api/favorite-recipes/");
+        if (res.data && res.data.success) {
+          setFavoriteIds(res.data.favorite_recipes || []);
+        }
+      } catch (e) {
+        // Có thể bỏ qua lỗi nếu chưa đăng nhập
+      }
+    };
+    fetchFavorites();
+  }, []);
+
   // Handle main search
   const handleMainSearch = (e) => {
     const term = e.target.value;
     setMainSearchTerm(term);
-
     if (term.trim() === "") {
-      setFilteredRecipes(recipes); // Hiển thị tất cả công thức nếu không có từ khóa
+      setFilteredRecipes(recipes);
       return;
     }
-
     const lowerCaseTerm = term.toLowerCase();
     const filtered = recipes.filter((recipe) => {
-      // Tìm kiếm theo tên công thức
-      const matchesRecipeName = recipe.title.toLowerCase().includes(lowerCaseTerm);
-      // Tìm kiếm theo nguyên liệu
+      const matchesRecipeName = recipe.title
+        .toLowerCase()
+        .includes(lowerCaseTerm);
       const matchesIngredients = recipe.ingredients.some((ing) =>
         ing.productName.toLowerCase().includes(lowerCaseTerm)
       );
       return matchesRecipeName || matchesIngredients;
     });
-
     setFilteredRecipes(filtered);
   };
 
-  // Handle search for ingredients (trong modal)
+  // Handle search cho catalog ingredients
   const handleSearch = async (e) => {
     const term = e.target.value;
     setSearchTerm(term);
-    setIsFromCatalog(false);
-
     if (term.length < 2) {
       setFilteredIngredients([]);
       return;
     }
-
     try {
-      const response = await api.get("/api/products/search/", {
+      const response = await api.get("/api/products/", {
         params: { q: term },
       });
       setFilteredIngredients(
@@ -114,7 +155,9 @@ const Recipes = () => {
           productID: product.productID,
           productName: product.productName,
           unit: product.unit,
-          categoryName: product.categoryName || "Null",
+          image: product.image,
+          price: product.price,
+          category: product.category || "Khác",
         }))
       );
     } catch (err) {
@@ -123,10 +166,234 @@ const Recipes = () => {
     }
   };
 
-  // ... (Giữ nguyên các hàm khác như handleSelectIngredient, handleAddNewIngredient, handleInputChange, v.v.)
+  // Select catalog ingredient
+  const handleSelectIngredient = (ingredient) => {
+    if (
+      !formData.ingredients.some(
+        (ing) => ing.productID === ingredient.productID
+      )
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        ingredients: [
+          ...prev.ingredients,
+          {
+            productID: ingredient.productID,
+            productName: ingredient.productName,
+            unit: ingredient.unit,
+          },
+        ],
+      }));
+    }
+    setSearchTerm("");
+    setFilteredIngredients([]);
+  };
+
+  // Handle input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle image change
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData((prev) => ({ ...prev, image: file }));
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  // Remove image
+  const removeImage = () => {
+    setFormData((prev) => ({ ...prev, image: null }));
+    setImagePreview("");
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      recipeName: "",
+      description: "",
+      instruction: "",
+      ingredients: [],
+      image: null,
+    });
+    setImagePreview("");
+    setSearchTerm("");
+    setFilteredIngredients([]);
+    setMessage("");
+  };
+
+  // Handle edit
+  const handleEdit = () => {
+    setFormData({
+      recipeName: selectedRecipe.title,
+      description: selectedRecipe.description,
+      instruction: selectedRecipe.instructions,
+      ingredients: selectedRecipe.ingredients,
+      image: null,
+    });
+    setImagePreview(selectedRecipe.image);
+    setIsEditMode(true);
+    setIsDetailsModalOpen(false);
+    setIsAddModalOpen(true);
+  };
+
+  // Handle delete
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn xóa công thức "${selectedRecipe.title}"?`
+      )
+    )
+      return;
+    try {
+      await api.delete(`/api/recipes/${selectedRecipe.id}/`);
+      setRecipes(recipes.filter((recipe) => recipe.id !== selectedRecipe.id));
+      setFilteredRecipes(
+        filteredRecipes.filter((recipe) => recipe.id !== selectedRecipe.id)
+      );
+      setIsDetailsModalOpen(false);
+      setMessage("Xóa công thức thành công");
+    } catch (err) {
+      setMessage("Lỗi khi xóa công thức");
+      console.error(err);
+    }
+  };
+
+  // Handle submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (
+      !formData.recipeName ||
+      !formData.description ||
+      !formData.instruction
+    ) {
+      setMessage("Vui lòng điền đầy đủ tên món ăn, mô tả và hướng dẫn.");
+      return;
+    }
+    setLoading(true);
+    setMessage("");
+
+    const formDataToSend = new FormData();
+    formDataToSend.append("recipeName", formData.recipeName);
+    formDataToSend.append("description", formData.description);
+    formDataToSend.append("instruction", formData.instruction);
+    formDataToSend.append("isCustom", false); // Always false since only admins add recipes
+    if (formData.image) {
+      formDataToSend.append("image_upload", formData.image);
+    }
+    formData.ingredients.forEach((item, index) => {
+      formDataToSend.append(`ingredients[${index}]`, item.productID);
+    });
+
+    try {
+      let response;
+      if (isEditMode && selectedRecipe) {
+        response = await api.put(
+          `/api/recipes/${selectedRecipe.id}/`,
+          formDataToSend,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
+        setMessage("Cập nhật công thức thành công");
+        setRecipes((prev) =>
+          prev.map((recipe) =>
+            recipe.id === selectedRecipe.id
+              ? {
+                  ...recipe,
+                  title: formData.recipeName,
+                  description: formData.description,
+                  instructions: formData.instruction,
+                  ingredients: formData.ingredients,
+                  image: response.data.image || recipe.image,
+                }
+              : recipe
+          )
+        );
+        setFilteredRecipes((prev) =>
+          prev.map((recipe) =>
+            recipe.id === selectedRecipe.id
+              ? {
+                  ...recipe,
+                  title: formData.recipeName,
+                  description: formData.description,
+                  instructions: formData.instruction,
+                  ingredients: formData.ingredients,
+                  image: response.data.image || recipe.image,
+                }
+              : recipe
+          )
+        );
+      } else {
+        response = await api.post("/api/recipes/", formDataToSend, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setMessage("Thêm công thức thành công");
+        const newRecipe = {
+          id: response.data.recipeID,
+          title: formData.recipeName,
+          description: formData.description,
+          instructions: formData.instruction,
+          image: response.data.image || "/images/default.jpg",
+          tags: formData.recipeName.split(" ").slice(0, 3),
+          liked: false,
+          ingredients: formData.ingredients,
+        };
+        setRecipes((prev) => [...prev, newRecipe]);
+        setFilteredRecipes((prev) => [...prev, newRecipe]);
+      }
+      setIsAddModalOpen(false);
+      resetForm();
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.detail ||
+        JSON.stringify(err.response?.data, null, 2) ||
+        "Unknown error";
+      setMessage(`Có lỗi xảy ra khi lưu công thức: ${errorMessage}`);
+      console.error("Error response:", err.response?.data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Save form state before navigating to AddProduct
+  const handleAddNewIngredient = () => {
+    localStorage.setItem(
+      "recipeFormData",
+      JSON.stringify({
+        recipeName: formData.recipeName,
+        description: formData.description,
+        instruction: formData.instruction,
+        ingredients: formData.ingredients,
+        imagePreview: imagePreview,
+        isEditMode: isEditMode,
+      })
+    );
+    window.location.href = "/add-product";
+  };
+
+  // Toggle favorite
+  const toggleFavorite = async (recipeId) => {
+    try {
+      if (favoriteIds.includes(recipeId)) {
+        await api.delete("/api/favorite-recipes/", {
+          data: { recipe_id: recipeId },
+        });
+        setFavoriteIds(favoriteIds.filter((id) => id !== recipeId));
+      } else {
+        await api.post("/api/favorite-recipes/", { recipe_id: recipeId });
+        setFavoriteIds([...favoriteIds, recipeId]);
+      }
+    } catch {
+      // Không làm gì
+    }
+  };
 
   return (
-    <div className="space-y-3 max-w-4xl mx-auto p-6">
+    <div className="space-y-3 max-w-6xl mx-auto p-6">
       <div className="flex items-center space-x-4">
         <h1 className="text-3xl font-bold text-gray-900">Công thức nấu ăn</h1>
       </div>
@@ -144,8 +411,22 @@ const Recipes = () => {
             Thêm công thức
           </button>
         )}
-        <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 text-sm rounded-lg">
+        <button
+          onClick={() => (window.location.href = "/fridge")}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 text-sm rounded-lg"
+        >
           Gợi ý từ tủ lạnh
+        </button>
+        <button
+          onClick={() => setShowFavoritesOnly((prev) => !prev)}
+          className={
+            (showFavoritesOnly
+              ? "bg-pink-500 hover:bg-pink-600 text-white"
+              : "bg-gray-200 hover:bg-gray-300 text-gray-800") +
+            " px-4 py-2 text-sm rounded-lg"
+          }
+        >
+          {showFavoritesOnly ? "Hiện tất cả" : "Xem công thức yêu thích"}
         </button>
       </div>
 
@@ -168,9 +449,18 @@ const Recipes = () => {
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredRecipes.length > 0 ? (
-          filteredRecipes.map((recipe) => (
-            <div key={recipe.id} className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+        {(showFavoritesOnly
+          ? filteredRecipes.filter((r) => favoriteIds.includes(r.id))
+          : filteredRecipes
+        ).length > 0 ? (
+          (showFavoritesOnly
+            ? filteredRecipes.filter((r) => favoriteIds.includes(r.id))
+            : filteredRecipes
+          ).map((recipe) => (
+            <div
+              key={recipe.id}
+              className="bg-white border border-gray-200 rounded-lg shadow-sm p-4"
+            >
               <img
                 src={recipe.image}
                 alt={recipe.title}
@@ -181,15 +471,45 @@ const Recipes = () => {
               />
               <h2 className="text-xl font-semibold mb-1">{recipe.title}</h2>
               <p className="text-gray-500 text-sm mb-2">{recipe.description}</p>
-              <button
-                onClick={() => {
-                  setSelectedRecipe(recipe);
-                  setIsDetailsModalOpen(true);
-                }}
-                className="mt-3 w-full text-sm text-center border border-gray-300 rounded py-1 hover:bg-gray-50"
-              >
-                Xem chi tiết
-              </button>
+              <div className="flex items-center gap-2 mt-3">
+                <button
+                  onClick={() => toggleFavorite(recipe.id)}
+                  className={
+                    `text-2xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-pink-400 ` +
+                    (favoriteIds.includes(recipe.id)
+                      ? "text-pink-600 drop-shadow-lg scale-125"
+                      : "text-gray-400 hover:text-pink-400 hover:scale-110")
+                  }
+                  title={
+                    favoriteIds.includes(recipe.id)
+                      ? "Bỏ khỏi yêu thích"
+                      : "Thêm vào yêu thích"
+                  }
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    cursor: "pointer",
+                    padding: 0,
+                    boxShadow: "none",
+                  }}
+                  aria-label={
+                    favoriteIds.includes(recipe.id)
+                      ? "Bỏ khỏi yêu thích"
+                      : "Thêm vào yêu thích"
+                  }
+                >
+                  {favoriteIds.includes(recipe.id) ? "♥" : "♡"}
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedRecipe(recipe);
+                    setIsDetailsModalOpen(true);
+                  }}
+                  className="flex-1 text-sm text-center border border-gray-300 rounded py-1 hover:bg-gray-50"
+                >
+                  Xem chi tiết
+                </button>
+              </div>
             </div>
           ))
         ) : (
@@ -208,7 +528,9 @@ const Recipes = () => {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên món ăn *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên món ăn *
+                </label>
                 <input
                   type="text"
                   name="recipeName"
@@ -219,7 +541,9 @@ const Recipes = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mô tả *
+                </label>
                 <textarea
                   name="description"
                   value={formData.description}
@@ -230,7 +554,9 @@ const Recipes = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hướng dẫn *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hướng dẫn *
+                </label>
                 <textarea
                   name="instruction"
                   value={formData.instruction}
@@ -241,42 +567,74 @@ const Recipes = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nguyên liệu</label>
-                <input
-                  type="text"
-                  placeholder="Tìm nguyên liệu..."
-                  value={searchTerm}
-                  onChange={handleSearch}
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {searchTerm && (
-                  <div className="mt-2 max-h-40 overflow-y-auto border rounded bg-white">
-                    {filteredIngredients.map((ingredient) => (
-                      <div
-                        key={ingredient.productID}
-                        className="p-2 hover:bg-gray-100 cursor-pointer"
-                        onClick={() => handleSelectIngredient(ingredient)}
-                      >
-                        {ingredient.productName} ({ingredient.unit})
-                      </div>
-                    ))}
-                    {searchTerm &&
-                      !filteredIngredients.some(
-                        (ing) => ing.productName.toLowerCase() === searchTerm.toLowerCase()
-                      ) && (
-                        <div className="p-2 hover:bg-gray-100 cursor-pointer" onClick={handleAddNewIngredient}>
-                          Thêm "{searchTerm}" làm nguyên liệu mới
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nguyên liệu
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Tìm nguyên liệu..."
+                    value={searchTerm}
+                    onChange={handleSearch}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {searchTerm && (
+                    <div className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto border rounded bg-white shadow-lg z-50">
+                      {filteredIngredients.length > 0 ? (
+                        filteredIngredients.map((ingredient) => (
+                          <div
+                            key={ingredient.productID}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center gap-3"
+                            onClick={() => handleSelectIngredient(ingredient)}
+                          >
+                            <div className="w-12 h-12 flex-shrink-0">
+                              <img
+                                src={ingredient.image || "/images/default.jpg"}
+                                alt={ingredient.productName}
+                                className="w-full h-full object-cover rounded border"
+                                onError={(e) => {
+                                  e.target.src = "/images/default.jpg";
+                                }}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">
+                                {ingredient.productName}
+                              </h4>
+                              {ingredient.price && (
+                                <p className="text-sm font-semibold text-green-600 mt-1">
+                                  Giá:{" "}
+                                  {ingredient.price.toLocaleString("vi-VN")}đ
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                Đơn vị: {ingredient.unit}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-gray-500 text-center">
+                          <p>Không tìm thấy nguyên liệu</p>
+                          <Link
+                            to="/add-product"
+                            onClick={handleAddNewIngredient}
+                            className="mt-2 inline-block bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm"
+                          >
+                            Thêm nguyên liệu mới
+                          </Link>
                         </div>
                       )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {formData.ingredients.map((ing, index) => (
                     <span
-                      key={ing.productID || `custom-${index}`}
+                      key={ing.productID}
                       className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-sm"
                     >
-                      {ing.productName} {ing.isCustom && "(Tùy chỉnh)"}
+                      {ing.productName}
                       <button
                         type="button"
                         className="ml-1 text-red-500 hover:text-red-700"
@@ -284,7 +642,7 @@ const Recipes = () => {
                           setFormData((prev) => ({
                             ...prev,
                             ingredients: prev.ingredients.filter(
-                              (item) => item.productID !== ing.productID || item.isCustom !== ing.isCustom
+                              (_, i) => i !== index
                             ),
                           }));
                         }}
@@ -296,7 +654,9 @@ const Recipes = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hình ảnh</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hình ảnh
+                </label>
                 <input
                   type="file"
                   accept="image/*"
@@ -364,7 +724,9 @@ const Recipes = () => {
             </div>
             <div className="w-1/2 pl-8">
               <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-semibold">{selectedRecipe.title}</h2>
+                <h2 className="text-3xl font-semibold">
+                  {selectedRecipe.title}
+                </h2>
                 {isAdmin === 1 && (
                   <div className="flex gap-3">
                     <button
@@ -382,20 +744,25 @@ const Recipes = () => {
                   </div>
                 )}
               </div>
-              <p className="text-gray-600 mt-3 text-lg">{selectedRecipe.description}</p>
+              <p className="text-gray-600 mt-3 text-lg">
+                {selectedRecipe.description}
+              </p>
               <h3 className="text-xl font-semibold mt-6">Nguyên liệu</h3>
               <div className="flex flex-wrap gap-3 mt-3">
-                {selectedRecipe.ingredients.map((ing, index) => (
+                {selectedRecipe.ingredients.map((ing) => (
                   <span
-                    key={ing.productID || `custom-${index}`}
+                    key={ing.product.productID} // Sử dụng productID từ product
                     className="px-3 py-1 rounded text-base bg-gray-100 text-gray-600"
                   >
-                    {ing.productName} {ing.isCustom && "(Tùy chỉnh)"}
+                    {ing.product.productName}{" "}
+                    {/* Truy cập productName từ product */}
                   </span>
                 ))}
               </div>
               <h3 className="text-xl font-semibold mt-6">Hướng dẫn</h3>
-              <p className="text-gray-600 mt-3 text-lg whitespace-pre-line">{selectedRecipe.instructions}</p>
+              <p className="text-gray-600 mt-3 text-lg whitespace-pre-line">
+                {selectedRecipe.instructions}
+              </p>
               <button
                 onClick={() => setIsDetailsModalOpen(false)}
                 className="mt-6 bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded-lg"
