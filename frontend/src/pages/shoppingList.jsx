@@ -6,6 +6,10 @@ import api from "../api";
 const ShoppingList = () => {
   const navigate = useNavigate();
 
+  // Lấy user từ localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userRole = user?.role || "member";
+
   // States
   const [lists, setLists] = useState([]);
   const [listStats, setListStats] = useState({}); // Lưu stats cho từng list
@@ -210,28 +214,31 @@ const ShoppingList = () => {
         <h1 style={{ fontSize: "2rem", fontWeight: "bold", margin: 0 }}>
           Danh sách mua sắm
         </h1>
-        <button
-          onClick={() => navigate("/add-shopping-list")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "#10b981",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            padding: "10px 16px",
-            cursor: "pointer",
-            fontSize: "14px",
-            fontWeight: "500",
-            transition: "background-color 0.2s",
-          }}
-          onMouseOver={(e) => (e.target.style.backgroundColor = "#059669")}
-          onMouseOut={(e) => (e.target.style.backgroundColor = "#10b981")}
-        >
-          <Plus size={18} />
-          Tạo danh sách mới
-        </button>
+        {/* Chỉ admin hoặc housekeeper mới thấy nút tạo danh sách mới */}
+        {(userRole === "admin" || userRole === "housekeeper") && (
+          <button
+            onClick={() => navigate("/add-shopping-list")}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#10b981",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "10px 16px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "500",
+              transition: "background-color 0.2s",
+            }}
+            onMouseOver={(e) => (e.target.style.backgroundColor = "#059669")}
+            onMouseOut={(e) => (e.target.style.backgroundColor = "#10b981")}
+          >
+            <Plus size={18} />
+            Tạo danh sách mới
+          </button>
+        )}
       </div>
 
       {/* Error Message */}
@@ -618,88 +625,92 @@ const ShoppingList = () => {
         })}
 
         {/* Create New Card - chỉ hiển thị khi có ít nhất 1 danh sách */}
-        {lists.length > 0 && (
-          <div
-            onClick={() => navigate("/add-shopping-list")}
-            style={{
-              border: "2px dashed #d1d5db",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textAlign: "center",
-              color: "#6b7280",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              minHeight: "200px",
-              padding: "16px",
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = "#f9fafb";
-              e.currentTarget.style.borderColor = "#9ca3af";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.borderColor = "#d1d5db";
-            }}
-          >
-            <div>
-              <Plus size={24} style={{ margin: "0 auto 8px" }} />
-              <p style={{ fontWeight: "600", margin: "0 0 4px 0" }}>
-                Tạo danh sách mới
-              </p>
-              <p style={{ fontSize: "14px", margin: 0 }}>
-                Lên kế hoạch mua sắm ngay
-              </p>
+        {lists.length > 0 &&
+          (userRole === "admin" || userRole === "housekeeper") && (
+            <div
+              onClick={() => navigate("/add-shopping-list")}
+              style={{
+                border: "2px dashed #d1d5db",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                color: "#6b7280",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                minHeight: "200px",
+                padding: "16px",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = "#f9fafb";
+                e.currentTarget.style.borderColor = "#9ca3af";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.borderColor = "#d1d5db";
+              }}
+            >
+              <div>
+                <Plus size={24} style={{ margin: "0 auto 8px" }} />
+                <p style={{ fontWeight: "600", margin: "0 0 4px 0" }}>
+                  Tạo danh sách mới
+                </p>
+                <p style={{ fontSize: "14px", margin: 0 }}>
+                  Lên kế hoạch mua sắm ngay
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       {/* Empty State - chỉ hiển thị khi không có danh sách nào */}
-      {!isLoading && !error && lists.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px 20px",
-            color: "#9ca3af",
-          }}
-        >
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🛒</div>
-          <h3
+      {!isLoading &&
+        !error &&
+        lists.length === 0 &&
+        (userRole === "admin" || userRole === "housekeeper") && (
+          <div
             style={{
-              fontSize: "1.25rem",
-              fontWeight: "600",
-              margin: "0 0 8px 0",
+              textAlign: "center",
+              padding: "60px 20px",
+              color: "#9ca3af",
             }}
           >
-            Chưa có danh sách nào
-          </h3>
-          <p style={{ margin: "0 0 24px 0", fontSize: "14px" }}>
-            Tạo danh sách mua sắm đầu tiên của bạn
-          </p>
-          <button
-            onClick={() => navigate("/add-shopping-list")}
-            style={{
-              background: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              padding: "12px 24px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "500",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              margin: "0 auto",
-            }}
-          >
-            <Plus size={16} />
-            Tạo danh sách mới
-          </button>
-        </div>
-      )}
+            <div style={{ fontSize: "48px", marginBottom: "16px" }}>🛒</div>
+            <h3
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: "600",
+                margin: "0 0 8px 0",
+              }}
+            >
+              Chưa có danh sách nào
+            </h3>
+            <p style={{ margin: "0 0 24px 0", fontSize: "14px" }}>
+              Tạo danh sách mua sắm đầu tiên của bạn
+            </p>
+            <button
+              onClick={() => navigate("/add-shopping-list")}
+              style={{
+                background: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                padding: "12px 24px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                margin: "0 auto",
+              }}
+            >
+              <Plus size={16} />
+              Tạo danh sách mới
+            </button>
+          </div>
+        )}
 
       {/* No Search Results - hiển thị khi có data nhưng search không có kết quả */}
       {!isLoading &&

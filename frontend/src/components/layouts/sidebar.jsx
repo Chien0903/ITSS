@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import Header from "./Header";
 
@@ -54,6 +54,26 @@ const NavItem = ({ to, icon, label, badge, collapsed }) => {
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Kiểm tra quyền admin từ localStorage
+    const checkAdminStatus = () => {
+      try {
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          setIsAdmin(userData.role === "admin");
+        }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, []);
+
   const menuItems = [
     { to: "/", icon: "🏠", label: "Trang Chủ" },
     {
@@ -66,6 +86,10 @@ const Sidebar = () => {
     { to: "/recipes", icon: "👨‍🍳", label: "Công Thức Nấu Ăn" },
     { to: "/meal-planning", icon: "📅", label: "Lập Kế Hoạch Bữa Ăn" },
     { to: "/statistics", icon: "📊", label: "Thống Kê" },
+    // Thêm menu item cho trang quản lý tài khoản, chỉ hiển thị cho admin
+    ...(isAdmin
+      ? [{ to: "/account-management", icon: "👥", label: "Quản Lý Tài Khoản" }]
+      : []),
   ];
 
   return (
