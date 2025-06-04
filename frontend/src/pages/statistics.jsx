@@ -122,7 +122,7 @@ const Statistics = () => {
                   currency: "VND",
                 })}
               </p>
-              <p>Tổng số lượng: {shoppingStats.totalQuantity}</p>
+              <p>Tổng số lượng mua: {shoppingStats.totalItems}</p>
             </div>
           )}
         </div>

@@ -18,6 +18,7 @@ import AddShoppingList from "./pages/addShoppingList";
 import ShoppingListDetail from "./pages/ShoppingListDetail";
 import AddNewPlanning from "./pages/AddNewPlanning";
 import ProtectedRoute from "./protectedRoute";
+import AccountManagement from "./pages/accountManagement";
 
 function Logout() {
   localStorage.clear();
@@ -27,8 +28,16 @@ function Logout() {
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<ProtectedRoute><Sidebar /></ProtectedRoute>}>
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Sidebar />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<Dashboard />} />
+        <Route path="account-management" element={<AccountManagement />} />
         <Route path="shopping-list" element={<ShoppingList />} />
         <Route path="store" element={<Store />} />
         <Route path="fridge" element={<Fridge />} />

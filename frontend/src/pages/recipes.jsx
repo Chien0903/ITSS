@@ -4,7 +4,6 @@ import { Link, useLocation } from "react-router-dom";
 import api from "../api";
 
 const Recipes = () => {
-  const isAdmin = 0; // Giả sử người dùng là admin
   const location = useLocation();
   const [recipes, setRecipes] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -27,6 +26,10 @@ const Recipes = () => {
   const [message, setMessage] = useState("");
   const [favoriteIds, setFavoriteIds] = useState([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  // Lấy user từ localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isAdmin = user?.role === "admin";
 
   // Khôi phục dữ liệu form và thêm nguyên liệu mới nếu quay lại từ trang Thêm sản phẩm (AddProduct)
   useEffect(() => {
@@ -399,7 +402,7 @@ const Recipes = () => {
       </div>
 
       <div className="flex justify-end gap-2 mb-4">
-        {isAdmin === 1 && (
+        {isAdmin && (
           <button
             onClick={() => {
               setIsAddModalOpen(true);
@@ -520,7 +523,7 @@ const Recipes = () => {
       </div>
 
       {/* Add/Edit Recipe Modal */}
-      {isAddModalOpen && (
+      {isAddModalOpen && isAdmin && (
         <div className="fixed inset-0 bg-transparent backdrop-blur-md flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4">
@@ -727,7 +730,7 @@ const Recipes = () => {
                 <h2 className="text-3xl font-semibold">
                   {selectedRecipe.title}
                 </h2>
-                {isAdmin === 1 && (
+                {isAdmin && (
                   <div className="flex gap-3">
                     <button
                       onClick={handleEdit}

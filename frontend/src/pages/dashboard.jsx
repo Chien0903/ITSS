@@ -292,7 +292,10 @@ const Dashboard = () => {
   // Fetch thông tin sản phẩm mua sắm phổ biến
   const fetchPopularProducts = async () => {
     try {
-      const response = await api.get("/api/shopping-lists/");
+      const { groupId } = getUserInfo();
+      const response = await api.get("/api/shopping-lists/", {
+        params: { group_id: groupId },
+      });
 
       if (response.data && Array.isArray(response.data)) {
         // Lấy các sản phẩm từ shopping lists để tính toán độ phổ biến
@@ -304,6 +307,7 @@ const Dashboard = () => {
             const detailResponse = await api.get(
               `/api/shopping-lists/${list.listID}/`
             );
+            console.log(detailResponse.data);
             return detailResponse.data.items || [];
           } catch (error) {
             console.error(`Error fetching list ${list.listID}:`, error);
@@ -317,7 +321,10 @@ const Dashboard = () => {
         // Đếm tần suất các sản phẩm
         allItems.forEach((item) => {
           const productName =
-            item.product?.productName || item.productName || "Sản phẩm";
+            item.product_details?.productName ||
+            item.product?.productName ||
+            item.productName ||
+            "Sản phẩm";
           productFrequency[productName] =
             (productFrequency[productName] || 0) + 1;
         });

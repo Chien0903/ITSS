@@ -8,13 +8,17 @@ const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", 
 const mealTimes = ["Sáng", "Trưa", "Tối"];
 
 const Plans = () => {
-  const [isEditing, setIsEditing] = useState(false);
+  // const [isEditing, setIsEditing] = useState(false); // Đã xóa vì không dùng nữa
   const [weeklyMealPlan, setWeeklyMealPlan] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false); // Đã xóa vì không dùng nữa
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedMeal, setSelectedMeal] = useState(null);
   const [showMealModal, setShowMealModal] = useState(false);
   const navigate = useNavigate();
+
+  // Lấy user từ localStorage
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userRole = user?.role || "member";
 
   // Lấy thông tin group từ localStorage
   const getGroupId = () => {
@@ -84,7 +88,7 @@ const Plans = () => {
   };
 
   const fetchWeeklyMealPlan = useCallback(async () => {
-    setLoading(true);
+    // setLoading(true);
     try {
       const startDate = getWeekStartDate(currentDate);
       const endDate = new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000);
@@ -107,8 +111,6 @@ const Plans = () => {
       }
     } catch {
       setWeeklyMealPlan(null);
-    } finally {
-      setLoading(false);
     }
   }, [currentDate, groupId]);
 
@@ -278,21 +280,15 @@ const Plans = () => {
       <div className="flex justify-between items-start mb-6">
         <h1 className="text-3xl font-bold">Lập kế hoạch bữa ăn</h1>
         <div className="flex items-center gap-2">
-          <button
-            className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm"
-            onClick={() => navigate("/add-new-planning")}
-          >
-            <CalendarPlus size={16} /> Lập kế hoạch mới
-          </button>
-          <button
-            className="flex items-center gap-1 border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-100"
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            <Pencil size={16} /> Chỉnh sửa
-          </button>
-          <button className="flex items-center gap-1 border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-100">
-            <Save size={16} /> Lưu
-          </button>
+          {/* Chỉ admin hoặc housekeeper mới thấy nút lập kế hoạch mới */}
+          {(userRole === "admin" || userRole === "housekeeper") && (
+            <button
+              className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded text-sm"
+              onClick={() => navigate("/add-new-planning")}
+            >
+              <CalendarPlus size={16} /> Lập kế hoạch mới
+            </button>
+          )}
         </div>
       </div>
 
@@ -369,44 +365,6 @@ const Plans = () => {
             </div>
           );
         })}
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-4">
-        <h2 className="text-xl font-semibold mb-4">Tổng hợp kế hoạch tuần</h2>
-        {loading ? (
-          <div className="text-center py-8">Đang tải...</div>
-        ) : weeklyMealPlan && weeklyMealPlan.ingredients_summary ? (
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <h3 className="font-semibold mb-2">Rau củ quả</h3>
-              <ul className="list-disc list-inside">
-                {weeklyMealPlan.ingredients_summary.vegetables?.map(
-                  (item, index) => <li key={index}>{item}</li>
-                ) || <li>Chưa có dữ liệu</li>}
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">Thịt/Cá/Hải sản</h3>
-              <ul className="list-disc list-inside">
-                {weeklyMealPlan.ingredients_summary.meat_seafood?.map(
-                  (item, index) => <li key={index}>{item}</li>
-                ) || <li>Chưa có dữ liệu</li>}
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">Khác</h3>
-              <ul className="list-disc list-inside">
-                {weeklyMealPlan.ingredients_summary.others?.map(
-                  (item, index) => <li key={index}>{item}</li>
-                ) || <li>Chưa có dữ liệu</li>}
-              </ul>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            Chưa có kế hoạch bữa ăn nào cho tuần này
-          </div>
-        )}
       </div>
 
       {/* Modal hiển thị chi tiết món ăn */}
