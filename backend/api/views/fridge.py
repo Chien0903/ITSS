@@ -28,7 +28,7 @@ class FridgeNotificationView(APIView):
         return group
 
     def get(self, request):
-        """Lấy thông báo thực phẩm sắp hết hạn trong vòng 3 ngày"""
+        """Lấy thông báo thực phẩm sắp hết hạn trong vòng 3 ngày và đã hết hạn"""
         group = self.get_group(request)
         if not group:
             return Response("User không thuộc nhóm nào", status=status.HTTP_400_BAD_REQUEST)
@@ -37,36 +37,48 @@ class FridgeNotificationView(APIView):
         today = date.today()
         three_days_later = today + timedelta(days=3)
         
-        # Lấy thực phẩm sắp hết hạn trong vòng 3 ngày
+        # Sản phẩm đã hết hạn
+        expired_items = AddToFridge.objects.filter(
+            fridge=fridge,
+            expiredDate__lt=today
+        ).select_related('product', 'product__category').order_by('expiredDate')
+
+        # Sản phẩm sắp hết hạn
         expiring_items = AddToFridge.objects.filter(
             fridge=fridge,
             expiredDate__gte=today,
             expiredDate__lte=three_days_later
         ).select_related('product', 'product__category').order_by('expiredDate')
 
-        # Serialize dữ liệu
-        serializer = AddToFridgeSerializer(expiring_items, many=True)
-        items_data = serializer.data
+        # Serialize
+        expired_serializer = AddToFridgeSerializer(expired_items, many=True)
+        expired_data = expired_serializer.data
+        for item in expired_data:
+            item['days_remaining'] = (date.fromisoformat(item['expiredDate']) - today).days
+            item['urgency'] = 'expired'
+            item['urgency_text'] = 'Đã hết hạn'
 
-        # Thêm thông tin ngày còn lại
-        for item in items_data:
+        expiring_serializer = AddToFridgeSerializer(expiring_items, many=True)
+        expiring_data = expiring_serializer.data
+        for item in expiring_data:
             expired_date = date.fromisoformat(item['expiredDate'])
             days_remaining = (expired_date - today).days
             item['days_remaining'] = days_remaining
-            
             if days_remaining == 0:
-                item['urgency'] = 'critical'  # Hết hạn hôm nay
+                item['urgency'] = 'critical'
                 item['urgency_text'] = 'Hết hạn hôm nay'
             elif days_remaining == 1:
-                item['urgency'] = 'high'  # Hết hạn ngày mai
+                item['urgency'] = 'high'
                 item['urgency_text'] = 'Hết hạn ngày mai'
             elif days_remaining <= 3:
-                item['urgency'] = 'medium'  # Hết hạn trong 2-3 ngày
+                item['urgency'] = 'medium'
                 item['urgency_text'] = f'Hết hạn trong {days_remaining} ngày'
 
+        all_items = list(expired_data) + list(expiring_data)
+
         return Response({
-            'total_expiring': len(items_data),
-            'items': items_data
+            'total_expiring': len(all_items),
+            'items': all_items
         })
 
 class FridgeDetailView(APIView):

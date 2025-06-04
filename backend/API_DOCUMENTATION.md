@@ -6,6 +6,443 @@
 http://localhost:8000/api/meal-plans/
 ```
 
+# --- BỔ SUNG: API Danh Mục Thực Phẩm ---
+
+## Categories (Danh mục thực phẩm)
+
+### 1. Lấy danh sách danh mục
+
+**GET** `/api/categories/`
+
+**Response:**
+
+```json
+[
+  {
+    "categoryID": 1,
+    "categoryName": "Thịt"
+  },
+  {
+    "categoryID": 2,
+    "categoryName": "Hải sản"
+  }
+]
+```
+
+### 2. Thêm danh mục mới
+
+**POST** `/api/categories/`
+
+**Request Body:**
+
+```json
+{
+  "categoryName": "Tên danh mục mới"
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "message": "Danh mục đã được thêm thành công",
+  "data": {
+    "categoryID": 10,
+    "categoryName": "Tên danh mục mới"
+  }
+}
+```
+
+**Lỗi (400):**
+
+```json
+{
+  "message": "Có lỗi xảy ra khi thêm danh mục",
+  "errors": { "categoryName": ["This field is required."] }
+}
+```
+
+### 3. Lấy chi tiết danh mục
+
+**GET** `/api/categories/{id}/`
+
+**Response:**
+
+```json
+{
+  "categoryID": 1,
+  "categoryName": "Thịt"
+}
+```
+
+**Lỗi (404):**
+
+```json
+{
+  "message": "Không tìm thấy danh mục"
+}
+```
+
+### 4. Cập nhật danh mục
+
+**PUT** `/api/categories/{id}/`
+
+**Request Body:**
+
+```json
+{
+  "categoryName": "Tên mới"
+}
+```
+
+**Response:**
+
+```json
+{
+  "message": "Danh mục đã được cập nhật thành công",
+  "data": {
+    "categoryID": 1,
+    "categoryName": "Tên mới"
+  }
+}
+```
+
+**Lỗi (400):**
+
+```json
+{
+  "message": "Có lỗi xảy ra khi cập nhật danh mục",
+  "errors": { "categoryName": ["This field is required."] }
+}
+```
+
+**Lỗi (404):**
+
+```json
+{
+  "message": "Không tìm thấy danh mục"
+}
+```
+
+### 5. Xóa danh mục
+
+**DELETE** `/api/categories/{id}/`
+
+**Response (204):**
+
+```json
+{
+  "message": "Danh mục đã được xóa thành công"
+}
+```
+
+**Lỗi (404):**
+
+```json
+{
+  "message": "Không tìm thấy danh mục"
+}
+```
+
+# --- HẾT PHẦN BỔ SUNG ---
+
+# --- BỔ SUNG: API Quản Lý Tài Khoản (User) ---
+
+## Đăng ký tài khoản
+
+**POST** `/api/register/`
+
+**Request Body:**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "12345678",
+  "name": "Nguyễn Văn A"
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "message": "Đăng ký thành công",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "Nguyễn Văn A",
+    "role": "member"
+  }
+}
+```
+
+**Lỗi (400):**
+
+```json
+{
+  "message": "Đăng ký thất bại",
+  "errors": { "email": ["Email đã tồn tại."] }
+}
+```
+
+## Đăng nhập (JWT)
+
+**POST** `/api/token/`
+
+**Request Body:**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "12345678"
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "refresh": "<refresh_token>",
+  "access": "<access_token>",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "Nguyễn Văn A",
+    "role": "member",
+    "username": "user1",
+    "phone": "0123456789",
+    "dateOfBirth": "2000-01-01",
+    "address": "Hà Nội",
+    "bio": "..."
+  }
+}
+```
+
+**Lỗi (400):**
+
+```json
+{
+  "non_field_errors": ["Email không tồn tại hoặc mật khẩu không đúng."]
+}
+```
+
+## Lấy thông tin user hiện tại
+
+**GET** `/api/user/me/` (Yêu cầu JWT)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "Nguyễn Văn A",
+    "username": "user1",
+    "role": "member",
+    "phone": "0123456789",
+    "dateOfBirth": "2000-01-01",
+    "address": "Hà Nội",
+    "bio": "..."
+  }
+}
+```
+
+## Cập nhật thông tin cá nhân
+
+**PUT** `/api/user/update/` (Yêu cầu JWT)
+
+**Request Body:**
+
+```json
+{
+  "name": "Tên mới",
+  "phone": "0987654321",
+  "dateOfBirth": "2001-01-01",
+  "address": "TP.HCM",
+  "bio": "Thông tin cá nhân mới"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Cập nhật thông tin thành công",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "Tên mới",
+    "username": "user1",
+    "role": "member",
+    "phone": "0987654321",
+    "dateOfBirth": "2001-01-01",
+    "address": "TP.HCM",
+    "bio": "Thông tin cá nhân mới"
+  }
+}
+```
+
+**Lỗi (400):**
+
+```json
+{
+  "success": false,
+  "message": "Email đã được sử dụng bởi tài khoản khác"
+}
+```
+
+## Danh sách user (chỉ admin)
+
+**GET** `/api/user/list/` (Yêu cầu JWT, admin)
+
+**Response:**
+
+```json
+[
+  {
+    "id": 1,
+    "email": "user@example.com",
+    "name": "Nguyễn Văn A",
+    "role": "member",
+    "is_active": true
+  },
+  ...
+]
+```
+
+## Quản lý chi tiết user (chỉ admin)
+
+**GET** `/api/user/{user_id}/` (Yêu cầu JWT, admin)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 2,
+    "email": "user2@example.com",
+    "name": "Nguyễn Văn B",
+    "role": "member",
+    "is_active": true
+  }
+}
+```
+
+**PATCH** `/api/user/{user_id}/` (Yêu cầu JWT, admin)
+
+**Request Body:**
+
+```json
+{
+  "name": "Tên mới",
+  "role": "admin"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Cập nhật thông tin thành công",
+  "data": {
+    "id": 2,
+    "email": "user2@example.com",
+    "name": "Tên mới",
+    "role": "admin"
+  }
+}
+```
+
+**DELETE** `/api/user/{user_id}/` (Yêu cầu JWT, admin)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Xóa người dùng thành công"
+}
+```
+
+**Lỗi (400/404):**
+
+```json
+{
+  "success": false,
+  "message": "Không thể xóa tài khoản admin" // hoặc "Không tìm thấy người dùng"
+}
+```
+
+## Cập nhật trạng thái user (chỉ admin)
+
+**PATCH** `/api/user/{user_id}/status/` (Yêu cầu JWT, admin)
+
+**Request Body:**
+
+```json
+{
+  "is_active": false
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Đã vô hiệu hóa tài khoản thành công",
+  "data": {
+    "id": 2,
+    "name": "Nguyễn Văn B",
+    "email": "user2@example.com",
+    "is_active": false
+  }
+}
+```
+
+## Cập nhật vai trò user (chỉ admin)
+
+**PATCH** `/api/user/{user_id}/role/` (Yêu cầu JWT, admin)
+
+**Request Body:**
+
+```json
+{
+  "role": "admin"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Cập nhật vai trò thành công",
+  "data": {
+    "id": 2,
+    "name": "Nguyễn Văn B",
+    "email": "user2@example.com",
+    "role": "admin"
+  }
+}
+```
+
+**Lỗi (400):**
+
+```json
+{
+  "success": false,
+  "message": "Không thể thay đổi vai trò của chính mình"
+}
+```
+
+# --- HẾT PHẦN BỔ SUNG ---
+
 ## Endpoints
 
 ### 1. Lấy danh sách kế hoạch bữa ăn

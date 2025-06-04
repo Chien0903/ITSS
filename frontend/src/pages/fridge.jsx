@@ -34,7 +34,6 @@ const Fridge = () => {
     popular_categories: [],
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("cool");
   const [groupId, setGroupId] = useState(null);
   const [newItem, setNewItem] = useState({
@@ -126,23 +125,14 @@ const Fridge = () => {
     setSearchTermProduct("");
     setSearchResults([]);
     setIsFromCatalog(false);
-    setError("");
     setEditingItem(null);
   };
 
   const fetchFridgeList = async () => {
     try {
       setIsLoading(true);
-      setError("");
       const params = groupId ? { group_id: groupId } : {};
-      if (DEBUG) console.log("Fetching fridge list with params:", params);
       const response = await api.get("/api/fridge/", { params });
-      if (DEBUG)
-        console.log(
-          "Fridge data fetched:",
-          JSON.stringify(response.data, null, 2)
-        );
-
       const filteredItems = (response.data.items || []).filter(
         (item) => item.location === activeTab
       );
@@ -156,10 +146,8 @@ const Fridge = () => {
         }
       );
     } catch (error) {
-      console.error("Error fetching fridge lists:", error);
-      setError(
-        error.response?.data?.detail ||
-          "Không thể tải danh sách thực phẩm trong tủ lạnh. Thử lại sau"
+      console.error(
+        "Không thể tải danh sách thực phẩm trong tủ lạnh. Thử lại sau"
       );
     } finally {
       setIsLoading(false);
@@ -168,37 +156,23 @@ const Fridge = () => {
 
   const fetchRecommendations = async (page = 1) => {
     try {
-      setError("");
       const params = { page, page_size: pageSize };
       if (groupId) params.group_id = groupId;
-      if (DEBUG) console.log("Fetching recommendations with params:", params);
       const response = await api.get("/api/fridge/recommendation/", { params });
-      if (DEBUG)
-        console.log(
-          "Recommendations fetched:",
-          JSON.stringify(response.data, null, 2)
-        );
       setRecommendations(response.data.recommendations || []);
       setTotalPages(response.data.total_pages || 1);
       setCurrentPage(response.data.page || 1);
     } catch (error) {
-      console.error("Error fetching recommendations:", error);
-      setError(
-        error.response?.data?.detail ||
-          "Không thể tải gợi ý công thức. Thử lại sau."
-      );
+      console.error("Không thể tải gợi ý công thức. Thử lại sau.");
     }
   };
 
   const fetchCategories = async () => {
     try {
       const res = await api.get("/api/categories");
-      if (DEBUG)
-        console.log("Categories fetched:", JSON.stringify(res.data, null, 2));
       setCategories(res.data);
     } catch (error) {
-      console.error("Lỗi khi lấy danh mục:", error);
-      setError("Không thể tải danh mục. Vui lòng thử lại.");
+      console.error("Không thể tải danh mục. Vui lòng thử lại.");
     }
   };
 
@@ -222,8 +196,6 @@ const Fridge = () => {
       const response = await api.get("/api/products/search/", {
         params: { q: term },
       });
-      if (DEBUG)
-        console.log("Search results:", JSON.stringify(response.data, null, 2));
       setSearchResults(
         response.data.map((product) => ({
           productID: product.productID,
@@ -234,7 +206,6 @@ const Fridge = () => {
         }))
       );
     } catch (err) {
-      console.error("Search error:", err);
       setSearchResults([]);
     }
   };
@@ -265,7 +236,6 @@ const Fridge = () => {
   };
 
   const handleAddItem = async () => {
-    setError("");
     if (
       !newItem.productName ||
       !newItem.quantity ||
@@ -274,7 +244,7 @@ const Fridge = () => {
       !newItem.expiredDate ||
       !newItem.location
     ) {
-      setError(
+      console.error(
         "Vui lòng điền đầy đủ thông tin sản phẩm (Tên, Số lượng, Đơn vị, Danh mục, Ngày hết hạn, Vị trí)."
       );
       return;
@@ -294,19 +264,13 @@ const Fridge = () => {
 
     try {
       const res = await api.post("/api/fridge/", payload);
-      if (DEBUG)
-        console.log(
-          "Thêm sản phẩm thành công:",
-          JSON.stringify(res.data, null, 2)
-        );
       setIsModalOpen(false);
       resetNewItemForm();
       fetchFridgeList();
       fetchRecommendations(currentPage);
       triggerNotificationRefreshWithDelay();
     } catch (error) {
-      console.error("Lỗi khi thêm sản phẩm:", error);
-      setError(
+      console.error(
         "Lỗi khi thêm sản phẩm: " +
           (error.response ? JSON.stringify(error.response.data) : error.message)
       );
@@ -314,14 +278,13 @@ const Fridge = () => {
   };
 
   const handleUpdateItem = async () => {
-    setError("");
     if (
       !editingItem ||
       !newItem.quantity ||
       !newItem.expiredDate ||
       !newItem.location
     ) {
-      setError(
+      console.error(
         "Vui lòng điền đầy đủ các trường bắt buộc (Số lượng, Ngày hết hạn, Vị trí) hoặc không có sản phẩm nào được chọn."
       );
       return;
@@ -336,19 +299,13 @@ const Fridge = () => {
 
     try {
       const res = await api.patch(`/api/fridge/${editingItem.id}/`, payload);
-      if (DEBUG)
-        console.log(
-          "Cập nhật sản phẩm thành công:",
-          JSON.stringify(res.data, null, 2)
-        );
       setIsModalOpen(false);
       resetNewItemForm();
       fetchFridgeList();
       fetchRecommendations(currentPage);
       triggerNotificationRefreshWithDelay();
     } catch (error) {
-      console.error("Lỗi khi cập nhật sản phẩm:", error);
-      setError(
+      console.error(
         "Lỗi khi cập nhật sản phẩm: " +
           (error.response ? JSON.stringify(error.response.data) : error.message)
       );
@@ -381,8 +338,7 @@ const Fridge = () => {
       fetchRecommendations(currentPage);
       triggerNotificationRefreshWithDelay();
     } catch (error) {
-      console.error("Error deleting item:", error);
-      setError(
+      console.error(
         error.response?.data?.detail || "Không thể xóa sản phẩm. Thử lại sau."
       );
     }
@@ -401,14 +357,22 @@ const Fridge = () => {
   };
 
   useEffect(() => {
-    fetchCategories();
-    fetchFridgeList();
-    fetchRecommendations();
+    const storedGroupId = localStorage.getItem("selectedGroup");
+    if (storedGroupId) {
+      setGroupId(storedGroupId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (groupId) {
+      fetchCategories();
+      fetchFridgeList();
+      fetchRecommendations();
+    }
   }, [groupId, activeTab]);
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {error && !isModalOpen && <p className="text-red-500 mb-4">{error}</p>}
       {isLoading ? (
         <p className="text-gray-500">Đang tải...</p>
       ) : (
@@ -579,7 +543,6 @@ const Fridge = () => {
                     </select>
                   </div>
                 </div>
-                {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     onClick={() => {
@@ -854,14 +817,14 @@ const Fridge = () => {
                             )}
                           </p>
                           <p className="text-sm mt-1 font-medium">
-                            {item.isExpiringSoon ? (
-                              <span className="text-yellow-500">
-                                ⚠ Sắp hết hạn!
-                              </span>
-                            ) : item.expiredDate &&
-                              new Date(item.expiredDate) < new Date() ? (
+                            {item.expiredDate &&
+                            new Date(item.expiredDate) < new Date() ? (
                               <span className="text-red-500">
                                 ⚠ Đã hết hạn!
+                              </span>
+                            ) : item.isExpiringSoon ? (
+                              <span className="text-yellow-500">
+                                ⚠ Sắp hết hạn!
                               </span>
                             ) : (
                               <span className="text-green-500">Còn hạn</span>

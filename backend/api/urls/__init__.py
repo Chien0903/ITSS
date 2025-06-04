@@ -1,7 +1,7 @@
 from django.urls import path, include
-from ..views.product_catalog_view import ProductCatalogView, ProductCatalogDetailView, ProductPriceView, ProductCatalogSearchView
 from ..views.categories_view import CategoriesView, CategoriesDetailView
-from ..views.user import RegisterView, CustomTokenObtainPairView, UserListView, UserMeView, UserUpdateView
+from ..views.user import UserListView, UserMeView, UserUpdateView
+from ..views.auth import RegisterView, CustomTokenObtainPairView
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -19,10 +19,9 @@ urlpatterns = [
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('register/', RegisterView.as_view(), name='register'),
-    path('products/', ProductCatalogView.as_view(), name='products'),
-    path('products/<int:pk>/', ProductCatalogDetailView.as_view(), name='product-detail'),
-    path('products/<int:pk>/price/', ProductPriceView.as_view(), name='product-price'),
-    path("products/search/", ProductCatalogSearchView.as_view(), name="product-search"), #Thêm vào để tìm kiếm
+    # Product URLs
+    path('products/', include('api.urls.products')),
+    # Category URLs
     path('categories/', CategoriesView.as_view(), name='categories'),
     # Group URLs
     path('groups/', include('api.urls.group')),

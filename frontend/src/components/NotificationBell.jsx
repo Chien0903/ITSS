@@ -14,13 +14,19 @@ const NotificationBell = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const [groupId, setGroupId] = useState(null);
+
+  useEffect(() => {
+    const storedGroupId = localStorage.getItem("selectedGroup");
+    if (storedGroupId) setGroupId(storedGroupId);
+  }, []);
 
   // Fetch notifications from API
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/fridge/notifications/");
-
+      const params = groupId ? { group_id: groupId } : {};
+      const response = await api.get("/api/fridge/notifications/", { params });
       const items = response.data.items || response.data || [];
       const total =
         response.data.total_expiring || response.data.total || items.length;
@@ -37,38 +43,41 @@ const NotificationBell = () => {
 
   // Load notifications when component mounts
   useEffect(() => {
-    fetchNotifications();
-
-    // Set up interval to refresh notifications every 2 minutes
-    const interval = setInterval(fetchNotifications, 2 * 60 * 1000);
-
-    // Setup auto-refresh cho các events
-    const cleanupAutoRefresh = setupNotificationAutoRefresh(fetchNotifications);
-
-    // Tự động refresh vào 00:00 hàng ngày để cập nhật urgency
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setHours(24, 0, 0, 0); // 00:00 ngày mai
-    const msUntilMidnight = midnight.getTime() - now.getTime();
-
-    const midnightTimeout = setTimeout(() => {
+    if (groupId) {
       fetchNotifications();
 
-      // Sau khi đã refresh lần đầu vào 00:00, thiết lập interval 24h
-      const dailyInterval = setInterval(() => {
-        console.log("Daily refresh - updating notifications urgency...");
+      // Set up interval to refresh notifications every 2 minutes
+      const interval = setInterval(fetchNotifications, 2 * 60 * 1000);
+
+      // Setup auto-refresh cho các events
+      const cleanupAutoRefresh =
+        setupNotificationAutoRefresh(fetchNotifications);
+
+      // Tự động refresh vào 00:00 hàng ngày để cập nhật urgency
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0); // 00:00 ngày mai
+      const msUntilMidnight = midnight.getTime() - now.getTime();
+
+      const midnightTimeout = setTimeout(() => {
         fetchNotifications();
-      }, 24 * 60 * 60 * 1000); // 24 giờ
 
-      return () => clearInterval(dailyInterval);
-    }, msUntilMidnight);
+        // Sau khi đã refresh lần đầu vào 00:00, thiết lập interval 24h
+        const dailyInterval = setInterval(() => {
+          console.log("Daily refresh - updating notifications urgency...");
+          fetchNotifications();
+        }, 24 * 60 * 60 * 1000); // 24 giờ
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(midnightTimeout);
-      cleanupAutoRefresh();
-    };
-  }, []);
+        return () => clearInterval(dailyInterval);
+      }, msUntilMidnight);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(midnightTimeout);
+        cleanupAutoRefresh();
+      };
+    }
+  }, [groupId]);
 
   // Manual refresh function
   const handleManualRefresh = () => {
@@ -198,7 +207,10 @@ const NotificationBell = () => {
                           <p
                             className={`text-sm font-medium ${style.textColor}`}
                           >
-                            {item.urgency_text}
+                            {item.expiredDate &&
+                            new Date(item.expiredDate) < new Date()
+                              ? "⚠ Đã hết hạn!"
+                              : item.urgency_text}
                           </p>
                           {item.product_category_name && (
                             <p className="text-xs text-gray-500 mt-1">
