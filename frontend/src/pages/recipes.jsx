@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import api from "../api";
 
 const Recipes = () => {
-  const isAdmin = 1; // Giả sử người dùng là admin
+  const isAdmin = 0; // Giả sử người dùng là admin
   const location = useLocation();
   const [recipes, setRecipes] = useState([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
