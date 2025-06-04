@@ -19,6 +19,29 @@ import ShoppingListDetail from "./pages/ShoppingListDetail";
 import AddNewPlanning from "./pages/AddNewPlanning";
 import ProtectedRoute from "./protectedRoute";
 import AccountManagement from "./pages/accountManagement";
+import DataManagement from "./pages/dataManagement";
+
+// Component kiểm tra quyền admin
+const AdminRoute = ({ children }) => {
+  const isAdmin = () => {
+    try {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        const userData = JSON.parse(userStr);
+        return userData.role === "admin";
+      }
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+    }
+    return false;
+  };
+
+  if (!isAdmin()) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
 
 function Logout() {
   localStorage.clear();
@@ -37,7 +60,14 @@ function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        <Route path="account-management" element={<AccountManagement />} />
+        <Route
+          path="account-management"
+          element={
+            <AdminRoute>
+              <AccountManagement />
+            </AdminRoute>
+          }
+        />
         <Route path="shopping-list" element={<ShoppingList />} />
         <Route path="store" element={<Store />} />
         <Route path="fridge" element={<Fridge />} />
@@ -50,6 +80,7 @@ function App() {
         <Route path="shopping-list/:id" element={<ShoppingListDetail />} />
         <Route path="add-new-planning" element={<AddNewPlanning />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="data-management" element={<DataManagement />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />

@@ -74,22 +74,19 @@ const Sidebar = () => {
     checkAdminStatus();
   }, []);
 
-  const menuItems = [
+  const mainMenuItems = [
     { to: "/", icon: "🏠", label: "Trang Chủ" },
-    {
-      to: "/shopping-list",
-      icon: "🛍️",
-      label: "Danh Sách Mua Sắm",
-    },
+    { to: "/shopping-list", icon: "🛍️", label: "Danh Sách Mua Sắm" },
     { to: "/store", icon: "🏪", label: "Cửa Hàng Thực Phẩm" },
     { to: "/fridge", icon: "❄️", label: "Quản Lý Tủ Lạnh" },
     { to: "/recipes", icon: "👨‍🍳", label: "Công Thức Nấu Ăn" },
     { to: "/meal-planning", icon: "📅", label: "Lập Kế Hoạch Bữa Ăn" },
     { to: "/statistics", icon: "📊", label: "Thống Kê" },
-    // Thêm menu item cho trang quản lý tài khoản, chỉ hiển thị cho admin
-    ...(isAdmin
-      ? [{ to: "/account-management", icon: "👥", label: "Quản Lý Tài Khoản" }]
-      : []),
+  ];
+
+  const adminMenuItems = [
+    { to: "/account-management", icon: "👥", label: "Quản Lý Tài Khoản" },
+    { to: "/data-management", icon: "📦", label: "Quản Lý Danh Mục" },
   ];
 
   return (
@@ -110,6 +107,7 @@ const Sidebar = () => {
           {/* Navigation */}
           <div className="flex-1 px-2 py-4 overflow-y-auto">
             <div>
+              {/* Chức Năng Chính */}
               {!collapsed && (
                 <div className="flex items-center gap-2 px-4 mb-4">
                   <div className="w-6 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
@@ -118,9 +116,8 @@ const Sidebar = () => {
                   </span>
                 </div>
               )}
-
               <nav className="space-y-2">
-                {menuItems.map((item) => (
+                {mainMenuItems.map((item) => (
                   <NavItem
                     key={item.to}
                     to={item.to}
@@ -131,6 +128,31 @@ const Sidebar = () => {
                   />
                 ))}
               </nav>
+              {/* Quản Trị */}
+              {isAdmin && (
+                <>
+                  {!collapsed && (
+                    <div className="flex items-center gap-2 px-4 mt-8 mb-4">
+                      <div className="w-6 h-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"></div>
+                      <span className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                        Quản Trị
+                      </span>
+                    </div>
+                  )}
+                  <nav className="space-y-2">
+                    {adminMenuItems.map((item) => (
+                      <NavItem
+                        key={item.to}
+                        to={item.to}
+                        icon={item.icon}
+                        label={item.label}
+                        badge={item.badge}
+                        collapsed={collapsed}
+                      />
+                    ))}
+                  </nav>
+                </>
+              )}
             </div>
           </div>
 

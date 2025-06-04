@@ -38,7 +38,7 @@ const Recipes = () => {
     const savedFormData = localStorage.getItem("recipeFormData");
 
     if (newProductID) {
-      // Lấy ra các nguyên liệu mới tạotạo
+      // Lấy ra các nguyên liệu mới tạo
       const fetchNewProduct = async () => {
         try {
           const response = await api.get(`/api/products/${newProductID}/`);
@@ -113,7 +113,7 @@ const Recipes = () => {
         if (res.data && res.data.success) {
           setFavoriteIds(res.data.favorite_recipes || []);
         }
-      } catch (e) {
+      } catch {
         // Có thể bỏ qua lỗi nếu chưa đăng nhập
       }
     };
@@ -230,21 +230,41 @@ const Recipes = () => {
 
   // Handle edit
   const handleEdit = () => {
+    if (!isAdmin) return;
     setFormData({
       recipeName: selectedRecipe.title,
       description: selectedRecipe.description,
       instruction: selectedRecipe.instructions,
-      ingredients: selectedRecipe.ingredients,
+      ingredients: Array.isArray(selectedRecipe.ingredients)
+        ? selectedRecipe.ingredients.map((ing) => ({
+            productID: ing.product?.productID || ing.productID,
+            productName: ing.product?.productName || ing.productName || "",
+            unit: ing.product?.unit || ing.unit || "",
+          }))
+        : [],
       image: null,
     });
     setImagePreview(selectedRecipe.image);
     setIsEditMode(true);
     setIsDetailsModalOpen(false);
     setIsAddModalOpen(true);
+
+    console.log("selectedRecipe.ingredients", selectedRecipe.ingredients);
+    selectedRecipe.ingredients.forEach((ing, idx) => {
+      console.log(
+        `Ingredient ${idx}:`,
+        ing,
+        "product:",
+        ing.product,
+        "productName:",
+        ing.productName
+      );
+    });
   };
 
   // Handle delete
   const handleDelete = async () => {
+    if (!isAdmin) return;
     if (
       !window.confirm(
         `Bạn có chắc muốn xóa công thức "${selectedRecipe.title}"?`
@@ -268,6 +288,7 @@ const Recipes = () => {
   // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAdmin) return;
     if (
       !formData.recipeName ||
       !formData.description ||
@@ -288,7 +309,12 @@ const Recipes = () => {
       formDataToSend.append("image_upload", formData.image);
     }
     formData.ingredients.forEach((item, index) => {
-      formDataToSend.append(`ingredients[${index}]`, item.productID);
+      if (item.productID) {
+        formDataToSend.append(
+          `ingredients[${index}]`,
+          parseInt(item.productID, 10)
+        );
+      }
     });
 
     try {
@@ -296,10 +322,7 @@ const Recipes = () => {
       if (isEditMode && selectedRecipe) {
         response = await api.put(
           `/api/recipes/${selectedRecipe.id}/`,
-          formDataToSend,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          }
+          formDataToSend
         );
         setMessage("Cập nhật công thức thành công");
         setRecipes((prev) =>
@@ -331,9 +354,7 @@ const Recipes = () => {
           )
         );
       } else {
-        response = await api.post("/api/recipes/", formDataToSend, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        response = await api.post("/api/recipes/", formDataToSend);
         setMessage("Thêm công thức thành công");
         const newRecipe = {
           id: response.data.recipeID,
@@ -356,6 +377,12 @@ const Recipes = () => {
         JSON.stringify(err.response?.data, null, 2) ||
         "Unknown error";
       setMessage(`Có lỗi xảy ra khi lưu công thức: ${errorMessage}`);
+      if (err.response?.data?.ingredients) {
+        console.error(
+          "Error response ingredients:",
+          err.response.data.ingredients
+        );
+      }
       console.error("Error response:", err.response?.data);
     } finally {
       setLoading(false);
@@ -394,6 +421,9 @@ const Recipes = () => {
       // Không làm gì
     }
   };
+
+  // Thêm log trước khi render nguyên liệu trong form
+  console.log("formData.ingredients", formData.ingredients);
 
   return (
     <div className="space-y-3 max-w-6xl mx-auto p-6">
@@ -512,6 +542,37 @@ const Recipes = () => {
                 >
                   Xem chi tiết
                 </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setSelectedRecipe(recipe);
+                        setIsEditMode(true);
+                        setFormData({
+                          ingredients: recipe.ingredients.map((ing) => ({
+                            productID: ing.product?.productID || ing.productID,
+                            productName: ing.product?.productName || ing.productName || "",
+                            unit: ing.product?.unit || ing.unit || "",
+                          })),
+                        });
+                        setImagePreview(recipe.image);
+                        setIsAddModalOpen(true);
+                      }}
+                      className="ml-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      Chỉnh sửa
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedRecipe(recipe);
+                        handleDelete();
+                      }}
+                      className="ml-2 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                    >
+                      Xóa
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))
@@ -634,10 +695,12 @@ const Recipes = () => {
                 <div className="mt-2 flex flex-wrap gap-2">
                   {formData.ingredients.map((ing, index) => (
                     <span
-                      key={ing.productID}
+                      key={ing.productID || index}
                       className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md text-sm"
                     >
-                      {ing.productName}
+                      {ing.productName && ing.productName !== ""
+                        ? ing.productName
+                        : "Không rõ"}
                       <button
                         type="button"
                         className="ml-1 text-red-500 hover:text-red-700"
@@ -752,13 +815,12 @@ const Recipes = () => {
               </p>
               <h3 className="text-xl font-semibold mt-6">Nguyên liệu</h3>
               <div className="flex flex-wrap gap-3 mt-3">
-                {selectedRecipe.ingredients.map((ing) => (
+                {selectedRecipe.ingredients.map((ing, idx) => (
                   <span
-                    key={ing.product.productID} // Sử dụng productID từ product
+                    key={ing.product?.productID || ing.productID || idx}
                     className="px-3 py-1 rounded text-base bg-gray-100 text-gray-600"
                   >
-                    {ing.product.productName}{" "}
-                    {/* Truy cập productName từ product */}
+                    {ing.product?.productName || ing.productName}
                   </span>
                 ))}
               </div>
