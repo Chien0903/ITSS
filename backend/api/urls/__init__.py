@@ -9,6 +9,7 @@ from rest_framework import routers
 from ..views.recipe import IngredientView, RecipeView
 from .favorite_recipe import *
 from ..views.change_password import ChangePasswordView
+from ..views.password_reset import PasswordResetRequestView, PasswordResetConfirmView
 
 router = routers.DefaultRouter()
 router.register(r'recipes', RecipeView)
@@ -20,6 +21,9 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('register/', RegisterView.as_view(), name='register'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    # Password Reset URLs
+    path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
+    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
     # Product URLs
     path('products/', include('api.urls.products')),
     # Category URLs

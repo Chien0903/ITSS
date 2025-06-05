@@ -21,6 +21,7 @@ import ProtectedRoute from "./protectedRoute";
 import AccountManagement from "./pages/accountManagement";
 import DataManagement from "./pages/dataManagement";
 import ChangePassword from "./pages/changePassword";
+import ForgotPassword from "./pages/forgotPassword";
 
 // Component kiểm tra quyền admin
 const AdminRoute = ({ children }) => {
@@ -83,11 +84,13 @@ function App() {
         <Route path="profile" element={<Profile />} />
         <Route path="data-management" element={<AdminRoute><DataManagement /></AdminRoute>} />
         <Route path="change-password" element={<ChangePassword />} />
+
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/select-group" element={<SelectGroup />} />
       <Route path="/logout" element={<Logout />} />
+      <Route path="forgot-password" element={<ForgotPassword />} />
     </Routes>
   );
 }
