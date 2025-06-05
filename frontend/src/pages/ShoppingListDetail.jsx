@@ -54,6 +54,10 @@ const ShoppingListDetail = () => {
   const [expiryDate, setExpiryDate] = useState("");
   const [location, setLocation] = useState("cool");
 
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isAdminOrHousekeeper =
+    user && (user.role === "admin" || user.role === "housekeeper");
+
   // API: Lấy chi tiết shopping list
   const fetchShoppingListDetail = async () => {
     try {
@@ -417,7 +421,7 @@ const ShoppingListDetail = () => {
       setIsUpdating(false);
     }
   };
-  //Xử lý thêm vào tủ lạnhlạnh
+  //Xử lý thêm vào tủ lạnh
   const handleConfirmAddToRefrigerator = async (item) => {
     console.log("Confirm item:", item);
     setNewFridgeItem({
@@ -672,24 +676,26 @@ const ShoppingListDetail = () => {
           <h2 style={{ margin: 0, fontSize: "1.25rem", fontWeight: "600" }}>
             Danh sách sản phẩm
           </h2>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            disabled={isUpdating}
-            style={{
-              background: isUpdating ? "#9ca3af" : "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "6px",
-              padding: "10px 16px",
-              cursor: isUpdating ? "not-allowed" : "pointer",
-              fontSize: "14px",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-          >
-            ➕ Thêm sản phẩm
-          </button>
+          {isAdminOrHousekeeper && (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              disabled={isUpdating}
+              style={{
+                background: isUpdating ? "#9ca3af" : "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                padding: "10px 16px",
+                cursor: isUpdating ? "not-allowed" : "pointer",
+                fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              ➕ Thêm sản phẩm
+            </button>
+          )}
         </div>
 
         <div style={{ padding: "20px" }}>
@@ -1125,7 +1131,7 @@ const ShoppingListDetail = () => {
           )}
 
           {/* Empty State */}
-          {list.items.length === 0 && (
+          {list.items.length === 0 && isAdminOrHousekeeper && (
             <div
               style={{
                 textAlign: "center",

@@ -20,7 +20,7 @@ class ProductCatalogSerializer(serializers.ModelSerializer):
             'discount_percentage',
             'estimatedPrice',
             'unit',
-            'categoryID',            # ✅ THÊM VÀO fields
+            'categoryID',           
             'category_name',
             'image', 
             'description',
