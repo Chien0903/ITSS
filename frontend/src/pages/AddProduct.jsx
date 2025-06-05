@@ -21,6 +21,21 @@ const AddProduct = () => {
   const [message, setMessage] = useState("");
   const [fromRecipes, setFromRecipes] = useState(false);
 
+  const units = [
+    "kg",
+    "g",
+    "lít",
+    "ml",
+    "cái",
+    "gói",
+    "hộp",
+    "túi",
+    "lon",
+    "chai",
+    "bó",
+    "ổ",
+  ];
+
   // Check if navigated from Recipes
   useEffect(() => {
     const savedFormData = localStorage.getItem("recipeFormData");
@@ -84,7 +99,11 @@ const AddProduct = () => {
       // Redirect based on origin
       if (fromRecipes) {
         // Redirect back to Recipes with new productID
-        setTimeout(() => navigate(`/recipes?newProductID=${response.data.data.productID}`), 1500);
+        setTimeout(
+          () =>
+            navigate(`/recipes?newProductID=${response.data.data.productID}`),
+          1500
+        );
       } else {
         // Standalone behavior: redirect to store or stay on page
         setTimeout(() => navigate("/store"), 1500); // Adjust to your store route
@@ -209,6 +228,25 @@ const AddProduct = () => {
                         value={category.categoryID}
                       >
                         {category.categoryName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Đơn vị *
+                  </label>
+                  <select
+                    value={formData.unit}
+                    onChange={(e) =>
+                      setFormData({ ...formData, unit: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue"
+                    required
+                  >
+                    {units.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
                       </option>
                     ))}
                   </select>

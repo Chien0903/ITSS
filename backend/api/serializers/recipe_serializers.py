@@ -69,7 +69,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         instance.save()
 
         if ingredients_data is not None:
-            instance.ingredient_set.all().delete()  # Xóa nguyên liệu cũ
+            instance.ingredients.all().delete()  # Xóa nguyên liệu cũ
 
             for product_id in ingredients_data:
                 try:

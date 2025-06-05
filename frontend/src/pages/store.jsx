@@ -1,6 +1,6 @@
 // Store.jsx - đã cập nhật thêm 2 nút + routing + responsive cho admin
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ShoppingCart, Plus, Eye, Edit, Trash2, List } from "lucide-react";
 import api from "../api";
 import { Link, useNavigate } from "react-router-dom";
@@ -27,16 +27,33 @@ const Store = () => {
   const [loadingShoppingLists, setLoadingShoppingLists] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [sortOption, setSortOption] = useState("default");
+  const [popularProducts, setPopularProducts] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  const searchTimeout = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productRes, categoryRes] = await Promise.all([
-          api.get("/api/products/"),
-          api.get("/api/categories/"),
-        ]);
-        setProducts(productRes.data);
-        setCategories(categoryRes.data);
+        setLoading(true);
+        let productRes, categoryRes;
+        if (search.length >= 2) {
+          setSearchLoading(true);
+          productRes = await api.get("/api/products/search/", {
+            params: { q: search },
+          });
+          categoryRes = await api.get("/api/categories/");
+          setProducts(productRes.data);
+          setCategories(categoryRes.data);
+          setSearchLoading(false);
+        } else {
+          [productRes, categoryRes] = await Promise.all([
+            api.get("/api/products/"),
+            api.get("/api/categories/"),
+          ]);
+          setProducts(productRes.data);
+          setCategories(categoryRes.data);
+        }
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
       } finally {
@@ -44,7 +61,7 @@ const Store = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [search]);
 
   // New function to fetch shopping lists
   const fetchShoppingLists = async () => {
@@ -131,16 +148,68 @@ const Store = () => {
     setSelectedProduct(null);
   };
 
-  let sortedProducts = [...products]
-    .filter((p) => p.productName.toLowerCase().includes(search.toLowerCase()))
-    .filter(
-      (p) => !selectedCategory || p.categoryID === Number(selectedCategory)
-    )
-    .filter((p) => {
-      if (filterTab === "popular") return p.rating >= 4.5;
-      if (filterTab === "discount") return p.discount > 0;
-      return true;
-    });
+  // Hàm lấy sản phẩm phổ biến
+  const fetchPopularProducts = async () => {
+    try {
+      const groupId = localStorage.getItem("selectedGroup");
+      const response = await api.get("/api/shopping-lists/", {
+        params: { group_id: groupId },
+      });
+      if (response.data && Array.isArray(response.data)) {
+        const productFrequency = {};
+        // Lấy chi tiết từng shopping list (giới hạn 10 list gần nhất)
+        const detailPromises = response.data.slice(0, 10).map(async (list) => {
+          try {
+            const detailResponse = await api.get(
+              `/api/shopping-lists/${list.listID}/`
+            );
+            return detailResponse.data.items || [];
+          } catch {
+            return [];
+          }
+        });
+        const allItemsArrays = await Promise.all(detailPromises);
+        const allItems = allItemsArrays.flat();
+        allItems.forEach((item) => {
+          const productId = item.product_details?.productID || item.productID;
+          if (productId) {
+            productFrequency[productId] =
+              (productFrequency[productId] || 0) + 1;
+          }
+        });
+        // Lấy top 10 productID phổ biến nhất
+        const topProductIDs = Object.entries(productFrequency)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([productID]) => Number(productID));
+        setPopularProducts(topProductIDs);
+      }
+    } catch {
+      setPopularProducts([]);
+    }
+  };
+
+  useEffect(() => {
+    if (filterTab === "popular") {
+      fetchPopularProducts();
+    }
+  }, [filterTab]);
+
+  let sortedProducts = [...products].filter(
+    (p) => !selectedCategory || p.categoryID === Number(selectedCategory)
+  );
+
+  if (filterTab === "popular") {
+    sortedProducts = sortedProducts
+      .filter((p) => popularProducts.includes(p.productID))
+      .sort(
+        (a, b) =>
+          popularProducts.indexOf(a.productID) -
+          popularProducts.indexOf(b.productID)
+      );
+  } else if (filterTab === "discount") {
+    sortedProducts = sortedProducts.filter((p) => p.discount > 0);
+  }
 
   if (sortOption === "price-asc") {
     sortedProducts.sort(
@@ -191,7 +260,13 @@ const Store = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (searchTimeout.current) clearTimeout(searchTimeout.current);
+            searchTimeout.current = setTimeout(() => {
+              setSearch(value);
+            }, 400);
+          }}
           className="flex-1 px-4 py-2 border rounded"
           placeholder="Tìm kiếm sản phẩm..."
         />
@@ -242,7 +317,9 @@ const Store = () => {
         ))}
       </div>
 
-      {loading ? (
+      {searchLoading ? (
+        <p>Đang tìm kiếm sản phẩm...</p>
+      ) : loading ? (
         <p>Đang tải sản phẩm...</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

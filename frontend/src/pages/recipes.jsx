@@ -145,26 +145,26 @@ const Recipes = () => {
   const handleSearch = async (e) => {
     const term = e.target.value;
     setSearchTerm(term);
-    if (term.length < 2) {
+    if (term.length < 1) {
       setFilteredIngredients([]);
       return;
     }
     try {
-      const response = await api.get("/api/products/", {
+      // Gọi đúng endpoint search, lấy thêm image, unit, price, categoryName
+      const response = await api.get("/api/products/search/", {
         params: { q: term },
       });
       setFilteredIngredients(
-        response.data.map((product) => ({
+        response.data.slice(0, 15).map((product) => ({
           productID: product.productID,
           productName: product.productName,
-          unit: product.unit,
           image: product.image,
+          unit: product.unit,
           price: product.price,
-          category: product.category || "Khác",
+          categoryName: product.category_name || product.categoryName || "",
         }))
       );
-    } catch (err) {
-      console.error("Search error:", err);
+    } catch {
       setFilteredIngredients([]);
     }
   };
@@ -551,7 +551,8 @@ const Recipes = () => {
                         setFormData({
                           ingredients: recipe.ingredients.map((ing) => ({
                             productID: ing.product?.productID || ing.productID,
-                            productName: ing.product?.productName || ing.productName || "",
+                            productName:
+                              ing.product?.productName || ing.productName || "",
                             unit: ing.product?.unit || ing.unit || "",
                           })),
                         });
@@ -651,7 +652,7 @@ const Recipes = () => {
                             className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex items-center gap-3"
                             onClick={() => handleSelectIngredient(ingredient)}
                           >
-                            <div className="w-12 h-12 flex-shrink-0">
+                            <div className="w-10 h-10 flex-shrink-0">
                               <img
                                 src={ingredient.image || "/images/default.jpg"}
                                 alt={ingredient.productName}
@@ -665,15 +666,22 @@ const Recipes = () => {
                               <h4 className="font-medium text-gray-900 truncate">
                                 {ingredient.productName}
                               </h4>
+                              <div className="text-xs text-gray-500 flex gap-2 mt-1">
+                                {ingredient.unit && (
+                                  <span>Đơn vị: {ingredient.unit}</span>
+                                )}
+                                {ingredient.categoryName && (
+                                  <span>
+                                    Danh mục: {ingredient.categoryName}
+                                  </span>
+                                )}
+                              </div>
                               {ingredient.price && (
-                                <p className="text-sm font-semibold text-green-600 mt-1">
+                                <p className="text-xs text-green-600 mt-1">
                                   Giá:{" "}
                                   {ingredient.price.toLocaleString("vi-VN")}đ
                                 </p>
                               )}
-                              <p className="text-xs text-gray-500 mt-1">
-                                Đơn vị: {ingredient.unit}
-                              </p>
                             </div>
                           </div>
                         ))
