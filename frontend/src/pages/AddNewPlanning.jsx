@@ -206,7 +206,15 @@ const MealPlanNew = () => {
       try {
         const decoded = decodeURIComponent(plannedMealsParam);
         const parsed = JSON.parse(decoded);
-        if (Array.isArray(parsed)) setPlannedMeals(parsed);
+        if (Array.isArray(parsed)) {
+          // Đảm bảo luôn có recipeId
+          setPlannedMeals(
+            parsed.map((item) => ({
+              day: item.day,
+              recipeId: item.recipe_id || item.recipeId || null,
+            }))
+          );
+        }
       } catch (e) {
         console.error("Không thể parse plannedMeals từ query", e);
       }
@@ -275,54 +283,37 @@ const MealPlanNew = () => {
 
   const handleSave = async () => {
     console.log("=== [DEBUG] BẮT ĐẦU LƯU KẾ HOẠCH ===");
-    console.log("planName:", planName);
-    console.log("startDate:", startDate);
-    console.log("selectedMealType:", selectedMealType);
-    console.log("plannedMeals:", plannedMeals);
-    console.log("plannedMeals.length:", plannedMeals.length);
+
+    // Lấy thông tin edit từ URL params và kiểm tra kỹ hơn
+    const editParam = searchParams.get("edit");
+    const planIDParam = searchParams.get("planID");
+
+    console.log("Edit params:", {
+      editParam,
+      planIDParam,
+      isEdit: editParam === "true",
+      hasPlanID: !!planIDParam,
+      fullUrl: window.location.href,
+    });
+
+    // Kiểm tra kỹ điều kiện edit
+    const isEditMode = editParam === "true" && planIDParam;
+    console.log("Is edit mode:", isEditMode);
 
     // Validation chi tiết hơn
     if (!planName.trim()) {
-      console.log("Lỗi: Thiếu tên kế hoạch");
       message.error("Vui lòng nhập tên kế hoạch");
       return;
     }
 
     if (!startDate) {
-      console.log("Lỗi: Thiếu ngày bắt đầu");
       message.error("Vui lòng chọn ngày bắt đầu");
       return;
     }
 
     if (!selectedMealType) {
-      console.log("Lỗi: Thiếu bữa ăn");
       message.error("Vui lòng chọn bữa ăn");
       return;
-    }
-
-    // Kiểm tra ngày bắt đầu không được trong quá khứ
-    const selectedDate = dayjs(startDate);
-    const today = dayjs().startOf("day");
-
-    if (selectedDate.isBefore(today)) {
-      message.warning("Ngày bắt đầu nên từ hôm nay trở đi");
-    }
-
-    // Thông báo khi lưu kế hoạch trống
-    if (plannedMeals.length === 0) {
-      console.log("Info: Đang lưu kế hoạch trống (không có món ăn)");
-      message.info("Bạn đang lưu kế hoạch trống. Bạn có thể thêm món ăn sau.");
-    }
-
-    console.log("Bước validation đã qua, tiếp tục xử lý...");
-
-    // Kiểm tra xem có món ăn nào chưa chọn recipe
-    const mealsWithoutRecipe = plannedMeals.filter((meal) => !meal.recipeId);
-    if (mealsWithoutRecipe.length > 0) {
-      console.log("Warning: Có món chưa chọn recipe", mealsWithoutRecipe);
-      message.warning(
-        `Có ${mealsWithoutRecipe.length} món chưa chọn công thức. Bạn có muốn tiếp tục?`
-      );
     }
 
     setLoading(true);
@@ -343,15 +334,10 @@ const MealPlanNew = () => {
 
       // Chuyển đổi format dữ liệu cho backend
       const formattedPlannedMeals = plannedMeals.map((meal) => ({
+        day: meal.day.toString(),
         meal: selectedMealType,
-        day: meal.day.toString(), // Backend expects string
-        recipe_id: meal.recipe_id || meal.recipeId || null, // Để null nếu không có recipe
+        recipe_id: meal.recipeId || null,
       }));
-
-      console.log(
-        "[DEBUG] formattedPlannedMeals gửi lên backend:",
-        formattedPlannedMeals
-      );
 
       const mealPlanData = {
         plan_name: planName.trim(),
@@ -363,35 +349,30 @@ const MealPlanNew = () => {
         user: currentUserInfo.userId,
       };
 
-      console.log("[DEBUG] mealPlanData gửi lên backend:", mealPlanData);
+      console.log("[DEBUG] mealPlanData:", mealPlanData);
+      console.log("[DEBUG] Is edit mode:", isEditMode);
+      console.log("[DEBUG] Plan ID:", planIDParam);
 
-      // Nếu là chỉnh sửa, gọi PUT thay vì POST
-      const editParam = searchParams.get("edit");
-      const planIDParam = searchParams.get("planID");
       let response;
-      if (editParam === "true" && planIDParam) {
+      // Sử dụng biến isEditMode đã kiểm tra
+      if (isEditMode) {
+        console.log("[DEBUG] Using PUT method for update");
         response = await api.put(
           `/api/meal-plans/${planIDParam}/`,
           mealPlanData
         );
       } else {
+        console.log("[DEBUG] Using POST method for create");
         response = await api.post("/api/meal-plans/", mealPlanData);
       }
 
-      console.log("[DEBUG] Response từ backend:", response);
-      console.log("[DEBUG] Response status:", response.status);
-      console.log("[DEBUG] Response data:", response.data);
+      console.log("[DEBUG] Response:", response);
 
       if (response.data.success) {
-        console.log("Success: Lưu thành công!");
-        if (plannedMeals.length === 0) {
-          message.success(
-            "Đã lưu kế hoạch trống thành công! Bạn có thể thêm món ăn sau."
-          );
+        if (isEditMode) {
+          message.success("Cập nhật kế hoạch thành công!");
         } else {
-          message.success(
-            `Đã lưu kế hoạch thành công với ${plannedMeals.length} món ăn!`
-          );
+          message.success("Tạo kế hoạch mới thành công!");
         }
         // Reset form
         setPlanName("");
@@ -401,10 +382,8 @@ const MealPlanNew = () => {
         setPlannedMeals([]);
         navigate("/meal-planning");
       } else {
-        console.error("Backend response không success:", response.data);
         message.error(
-          "Có lỗi xảy ra khi lưu kế hoạch: " +
-            (response.data.message || "Lỗi không xác định")
+          response.data.message || "Có lỗi xảy ra khi lưu kế hoạch"
         );
       }
     } catch (error) {
@@ -414,9 +393,12 @@ const MealPlanNew = () => {
       console.error("Error response:", error.response?.data);
       console.error("Error status:", error.response?.status);
 
-      // Hiển thị lỗi chi tiết hơn
       if (error.response?.status === 400) {
-        if (error.response?.data?.errors) {
+        if (error.response?.data?.message?.includes("already exists")) {
+          message.error(
+            "Kế hoạch bữa ăn này đã tồn tại cho ngày và bữa ăn này trong nhóm. Vui lòng chọn tên khác hoặc chỉnh sửa kế hoạch cũ."
+          );
+        } else if (error.response?.data?.errors) {
           const errorMsg = Object.entries(error.response.data.errors)
             .map(
               ([field, messages]) =>
@@ -426,10 +408,6 @@ const MealPlanNew = () => {
             )
             .join("; ");
           message.error("Lỗi validation: " + errorMsg);
-        } else if (error.response?.data?.message) {
-          message.error("Lỗi: " + error.response.data.message);
-        } else {
-          message.error("Dữ liệu không hợp lệ, vui lòng kiểm tra lại");
         }
       } else if (error.response?.status === 401) {
         message.error("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
@@ -437,10 +415,6 @@ const MealPlanNew = () => {
         message.error("Bạn không có quyền thực hiện thao tác này");
       } else if (error.response?.status >= 500) {
         message.error("Lỗi server, vui lòng thử lại sau");
-      } else if (error.code === "NETWORK_ERROR" || !error.response) {
-        message.error(
-          "Không thể kết nối đến server, vui lòng kiểm tra kết nối mạng"
-        );
       } else {
         message.error("Có lỗi xảy ra khi lưu kế hoạch");
       }

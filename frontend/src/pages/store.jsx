@@ -29,6 +29,8 @@ const Store = () => {
   const [sortOption, setSortOption] = useState("default");
   const [popularProducts, setPopularProducts] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 12;
 
   const searchTimeout = useRef(null);
 
@@ -233,6 +235,17 @@ const Store = () => {
     );
   }
   console.log(products);
+
+  const totalPages = Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = sortedProducts.slice(
+    (currentPage - 1) * PRODUCTS_PER_PAGE,
+    currentPage * PRODUCTS_PER_PAGE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedCategory, filterTab, sortOption]);
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 flex-wrap">
@@ -323,7 +336,7 @@ const Store = () => {
         <p>Đang tải sản phẩm...</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedProducts.map((product) => {
+          {paginatedProducts.map((product) => {
             const hasDiscount = product.discount > 0;
             const discountPercentage = hasDiscount
               ? Math.round(product.discount)
@@ -452,6 +465,24 @@ const Store = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6 gap-2">
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => setCurrentPage(i + 1)}
+              className={`px-3 py-1 rounded ${
+                currentPage === i + 1
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
         </div>
       )}
 

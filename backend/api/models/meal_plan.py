@@ -11,7 +11,7 @@ class MealPlan(models.Model):
     description = models.TextField(blank=True, null=True)
     mealType = models.CharField(max_length=50)
     day_of_week = models.IntegerField(default=0)  # 0-6 for Monday-Sunday
-    recipes = models.ManyToManyField(Recipe, blank=True)
+    recipes = models.ManyToManyField(Recipe, through='Have', blank=True)
     group = models.ForeignKey(Group, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=timezone.now)

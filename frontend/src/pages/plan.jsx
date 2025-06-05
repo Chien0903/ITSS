@@ -244,7 +244,7 @@ const Plans = () => {
   };
 
   const showMealDetails = (meal, dayIndex, mealTime) => {
-    // Tạo thông tin chi tiết về món ăn
+    // Đảm bảo mealInfo có planID
     const dayNames = [
       "Thứ 2",
       "Thứ 3",
@@ -254,19 +254,18 @@ const Plans = () => {
       "Thứ 7",
       "Chủ nhật",
     ];
-    const dayName = dayNames[dayIndex];
     const { fullDates } = getWeekDates();
     const fullDate = fullDates[dayIndex];
 
     const mealInfo = {
       ...meal,
-      dayName,
+      planID: meal.planID || meal.planId || meal.id, // Đảm bảo có planID
+      dayName: dayNames[dayIndex],
       date: fullDate.getDate(),
       fullDate: fullDate.toLocaleDateString("vi-VN"),
       mealTime,
       dayIndex,
     };
-
     setSelectedMeal(mealInfo);
     setShowMealModal(true);
   };
@@ -431,7 +430,10 @@ const Plans = () => {
               ) : (
                 <div>
                   <span className="font-medium">🥘 Món ăn:</span>{" "}
-                  {selectedMeal.recipe_name || "Món ăn"}
+                  {selectedMeal.recipe_name ||
+                    selectedMeal.recipeName ||
+                    selectedMeal.recipeId ||
+                    "Món ăn"}
                 </div>
               )}
               {selectedMeal.description && (
@@ -463,8 +465,13 @@ const Plans = () => {
               <button
                 onClick={() => {
                   setShowMealModal(false);
+                  // LOG kiểm tra
+                  console.log(
+                    "Chỉnh sửa planID:",
+                    selectedMeal.planID,
+                    selectedMeal
+                  );
 
-                  // Chuẩn bị plannedMeals đúng định dạng
                   const plannedMeals =
                     selectedMeal.recipes && selectedMeal.recipes.length > 0
                       ? selectedMeal.recipes.map((recipe) => ({
@@ -482,7 +489,6 @@ const Plans = () => {
                     JSON.stringify(plannedMeals)
                   );
 
-                  // Chuyển đổi mealTime sang mealType
                   const mealTypeMap = {
                     Sáng: "breakfast",
                     Trưa: "lunch",
@@ -491,7 +497,6 @@ const Plans = () => {
                   const mealType =
                     mealTypeMap[selectedMeal.mealTime] || "breakfast";
 
-                  // Sử dụng Day.js để tính toán ngày thực tế
                   const weekStart = dayjs(getWeekStartDate(currentDate));
                   const targetDate = weekStart.add(
                     selectedMeal.dayIndex,
@@ -499,7 +504,12 @@ const Plans = () => {
                   );
                   const formattedDate = targetDate.format("YYYY-MM-DD");
 
-                  // Navigate với plannedMeals và planID
+                  // Đảm bảo planID luôn có giá trị
+                  if (!selectedMeal.planID) {
+                    alert("Không tìm thấy planID, không thể chỉnh sửa!");
+                    return;
+                  }
+
                   navigate(
                     `/add-new-planning?date=${formattedDate}&mealType=${mealType}&day=${selectedMeal.dayIndex}&edit=true&planID=${selectedMeal.planID}&plannedMeals=${plannedMealsStr}`
                   );

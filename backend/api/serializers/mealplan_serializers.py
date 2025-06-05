@@ -59,8 +59,6 @@ class MealPlanCreateSerializer(serializers.Serializer):
             
             # Tính toán day_of_week dựa trên start_date
             start_date = validated_data['start_date']
-            # Python weekday(): Monday=0, Sunday=6
-            # Nhưng model của chúng ta: Monday=0, Sunday=6 (giống nhau)
             day_of_week = start_date.weekday()
             print(f"start_date: {start_date}, calculated day_of_week: {day_of_week}")
             
@@ -68,8 +66,8 @@ class MealPlanCreateSerializer(serializers.Serializer):
                 plan_name=validated_data['plan_name'],
                 start_date=validated_data['start_date'],
                 description=validated_data.get('description', ''),
-                mealType=meal_type,  # Sử dụng meal_type từ frontend
-                day_of_week=day_of_week,  # Tính toán dựa trên start_date
+                mealType=meal_type,
+                day_of_week=day_of_week,
                 group_id=validated_data['group'],
                 user_id=validated_data['user']
             )
@@ -80,22 +78,20 @@ class MealPlanCreateSerializer(serializers.Serializer):
             for meal_data in planned_meals:
                 print(f"Creating meal plan for: {meal_data}")
                 
-                # Tính toán day_of_week dựa trên start_date thực tế thay vì dùng day từ frontend
+                # Tính toán day_of_week dựa trên start_date
                 start_date = validated_data['start_date']
-                # Python weekday(): Monday=0, Sunday=6
-                # Chuyển đổi sang format của chúng ta: Monday=0, Sunday=6 (giống nhau)
-                day_of_week_calculated = start_date.weekday()
+                day_of_week = start_date.weekday()
                 
                 print(f"start_date: {start_date}")
                 print(f"frontend day parameter: {meal_data['day']}")
-                print(f"calculated day_of_week from start_date: {day_of_week_calculated}")
+                print(f"calculated day_of_week from start_date: {day_of_week}")
                 
                 meal_plan = MealPlan.objects.create(
                     plan_name=validated_data['plan_name'],
                     start_date=validated_data['start_date'],
                     description=validated_data.get('description', ''),
-                    mealType=meal_data['meal'],
-                    day_of_week=day_of_week_calculated,  # Sử dụng day_of_week được tính từ start_date
+                    mealType=meal_data.get('meal', meal_type),
+                    day_of_week=day_of_week,
                     group_id=validated_data['group'],
                     user_id=validated_data['user']
                 )
