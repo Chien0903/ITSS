@@ -26,6 +26,7 @@ const Store = () => {
   const [selectedProductToAdd, setSelectedProductToAdd] = useState(null);
   const [loadingShoppingLists, setLoadingShoppingLists] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [sortOption, setSortOption] = useState("default");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -130,7 +131,7 @@ const Store = () => {
     setSelectedProduct(null);
   };
 
-  const filteredProducts = products
+  let sortedProducts = [...products]
     .filter((p) => p.productName.toLowerCase().includes(search.toLowerCase()))
     .filter(
       (p) => !selectedCategory || p.categoryID === Number(selectedCategory)
@@ -141,6 +142,28 @@ const Store = () => {
       return true;
     });
 
+  if (sortOption === "price-asc") {
+    sortedProducts.sort(
+      (a, b) => (a.price || a.original_price) - (b.price || b.original_price)
+    );
+  } else if (sortOption === "price-desc") {
+    sortedProducts.sort(
+      (a, b) => (b.price || b.original_price) - (a.price || a.original_price)
+    );
+  } else if (sortOption === "name-asc") {
+    sortedProducts.sort((a, b) => a.productName.localeCompare(b.productName));
+  } else if (sortOption === "name-desc") {
+    sortedProducts.sort((a, b) => b.productName.localeCompare(a.productName));
+  } else if (sortOption === "newest") {
+    sortedProducts.sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+  } else if (sortOption === "oldest") {
+    sortedProducts.sort(
+      (a, b) => new Date(a.created_at) - new Date(b.created_at)
+    );
+  }
+  console.log(products);
   return (
     <div className="p-4 md:p-6">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-3 flex-wrap">
@@ -184,6 +207,19 @@ const Store = () => {
             </option>
           ))}
         </select>
+        <select
+          value={sortOption}
+          onChange={(e) => setSortOption(e.target.value)}
+          className="border px-4 py-2 rounded w-full md:w-auto"
+        >
+          <option value="default">Sắp xếp mặc định</option>
+          <option value="price-asc">Giá tăng dần</option>
+          <option value="price-desc">Giá giảm dần</option>
+          <option value="name-asc">Tên A-Z</option>
+          <option value="name-desc">Tên Z-A</option>
+          <option value="newest">Mới nhất</option>
+          <option value="oldest">Cũ nhất</option>
+        </select>
       </div>
 
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -210,7 +246,7 @@ const Store = () => {
         <p>Đang tải sản phẩm...</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => {
+          {sortedProducts.map((product) => {
             const hasDiscount = product.discount > 0;
             const discountPercentage = hasDiscount
               ? Math.round(product.discount)

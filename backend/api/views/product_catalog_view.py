@@ -16,10 +16,13 @@ class ProductCatalogView(APIView):
 
     def get(self, request):
         category_id = request.query_params.get('category', None)
-        products = ProductCatalog.objects.filter(isCustom=False)
+        products = ProductCatalog.objects.all()
 
         if category_id:
-            products = products.filter(category_id=category_id)
+            try:
+                products = products.filter(category_id=int(category_id))
+            except ValueError:
+                pass  # Nếu category_id không phải số, bỏ qua filter
         serializer = ProductCatalogSerializer(products, many=True)
         return Response(serializer.data)
 
