@@ -84,9 +84,6 @@ const Dashboard = () => {
       const today = new Date();
       const todayString = today.toISOString().split("T")[0];
 
-      // Trước tiên, thử lấy TẤT CẢ meal plans không filter
-      const allResponse = await api.get("/api/meal-plans/");
-
       // Lấy danh sách meal plans của group
       const response = await api.get("/api/meal-plans/", {
         params: {
@@ -94,11 +91,8 @@ const Dashboard = () => {
         },
       });
 
-      // Sử dụng dữ liệu từ all response nếu group filter trả về rỗng
+      // Chỉ sử dụng dữ liệu meal plan của đúng group
       let dataToUse = response.data?.data || [];
-      if (dataToUse.length === 0 && allResponse.data?.data?.length > 0) {
-        dataToUse = allResponse.data.data;
-      }
 
       if (dataToUse.length > 0) {
         const allPlans = dataToUse;

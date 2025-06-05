@@ -84,6 +84,7 @@ const Recipes = () => {
   // Fetch recipes
   useEffect(() => {
     const fetchRecipes = async () => {
+      setLoading(true);
       try {
         const response = await api.get("/api/recipes/");
         console.log("Recipes API response:", response.data);
@@ -100,6 +101,8 @@ const Recipes = () => {
       } catch (err) {
         setMessage("Lỗi khi lấy thực đơn");
         console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchRecipes();
@@ -482,10 +485,19 @@ const Recipes = () => {
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {(showFavoritesOnly
-          ? filteredRecipes.filter((r) => favoriteIds.includes(r.id))
-          : filteredRecipes
-        ).length > 0 ? (
+        {loading ? (
+          <div className="col-span-full flex justify-center items-center py-10">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500 mb-3"></div>
+              <span className="text-blue-500 text-lg">
+                Đang tải công thức...
+              </span>
+            </div>
+          </div>
+        ) : (showFavoritesOnly
+            ? filteredRecipes.filter((r) => favoriteIds.includes(r.id))
+            : filteredRecipes
+          ).length > 0 ? (
           (showFavoritesOnly
             ? filteredRecipes.filter((r) => favoriteIds.includes(r.id))
             : filteredRecipes
