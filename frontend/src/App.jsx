@@ -20,6 +20,7 @@ import AddNewPlanning from "./pages/AddNewPlanning";
 import ProtectedRoute from "./protectedRoute";
 import AccountManagement from "./pages/accountManagement";
 import DataManagement from "./pages/dataManagement";
+import ChangePassword from "./pages/changePassword";
 
 // Component kiểm tra quyền admin
 const AdminRoute = ({ children }) => {
@@ -80,7 +81,8 @@ function App() {
         <Route path="shopping-list/:id" element={<ShoppingListDetail />} />
         <Route path="add-new-planning" element={<AddNewPlanning />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="data-management" element={<DataManagement />} />
+        <Route path="data-management" element={<AdminRoute><DataManagement /></AdminRoute>} />
+        <Route path="change-password" element={<ChangePassword />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />

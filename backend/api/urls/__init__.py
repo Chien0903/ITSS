@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework import routers
 from ..views.recipe import IngredientView, RecipeView
 from .favorite_recipe import *
-
+from ..views.change_password import ChangePasswordView
 
 router = routers.DefaultRouter()
 router.register(r'recipes', RecipeView)
@@ -19,6 +19,7 @@ urlpatterns = [
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('register/', RegisterView.as_view(), name='register'),
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
     # Product URLs
     path('products/', include('api.urls.products')),
     # Category URLs

@@ -10,6 +10,7 @@ from ..views.user import (
     UserRoleView,
 )
 
+
 urlpatterns = [
     # ... existing urls ...
     path('users/', UserListView.as_view(), name='user-list'),
@@ -18,4 +19,5 @@ urlpatterns = [
     path('users/<int:user_id>/', UserDetailView.as_view(), name='user-detail'),
     path('users/<int:user_id>/status/', UserStatusView.as_view(), name='user-status'),
     path('users/<int:user_id>/role/', UserRoleView.as_view(), name='user-role'),
+
 ] 
