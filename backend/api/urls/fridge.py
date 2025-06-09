@@ -7,4 +7,7 @@ urlpatterns = [
     path('notifications/', FridgeNotificationView.as_view(), name='fridge-notifications'),
     path('<int:id>/', FridgeDetailView.as_view(), name='fridge-item'),
     path('recommendation/', RecipeRecommendationView.as_view(), name='recipe-recommendation'),
+    #Test
+    path('', FridgeDetailView.as_view(), name='fridge-list-create'),
+    path('<int:id>/', FridgeDetailView.as_view(), name='fridge-detail-update-delete'),
 ]
