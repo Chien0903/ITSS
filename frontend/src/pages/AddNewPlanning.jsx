@@ -270,10 +270,29 @@ const MealPlanNew = () => {
     ]);
   };
 
+  const [customRecipes, setCustomRecipes] = useState(() => {
+    const saved = localStorage.getItem("customRecipes");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const updatePlannedMeal = (index, updates) => {
     const updated = [...plannedMeals];
     updated[index] = { ...updated[index], ...updates };
     setPlannedMeals(updated);
+
+    // Nếu là món ăn tùy chọn, lưu vào localStorage
+    if (updates.customRecipeName) {
+      const newCustomRecipe = {
+        name: updates.customRecipeName,
+        addedAt: new Date().toISOString(),
+      };
+      const updatedCustomRecipes = [...customRecipes, newCustomRecipe];
+      setCustomRecipes(updatedCustomRecipes);
+      localStorage.setItem(
+        "customRecipes",
+        JSON.stringify(updatedCustomRecipes)
+      );
+    }
   };
 
   const removePlannedMeal = (index) => {
@@ -337,6 +356,7 @@ const MealPlanNew = () => {
         day: meal.day.toString(),
         meal: selectedMealType,
         recipe_id: meal.recipeId || null,
+        custom_recipe_name: meal.customRecipeName || null,
       }));
 
       const mealPlanData = {
@@ -641,15 +661,35 @@ const MealPlanNew = () => {
                       Món ăn
                     </div>
                     <Select
-                      value={meal.recipeId || undefined}
+                      mode="tags"
+                      value={
+                        meal.recipeId
+                          ? [meal.recipeId]
+                          : meal.customRecipeName
+                          ? [meal.customRecipeName]
+                          : []
+                      }
                       style={{ width: "100%" }}
                       loading={isLoadingRecommend}
                       placeholder={
-                        isLoadingRecommend ? "Đang tải..." : "Chọn món ăn"
+                        isLoadingRecommend
+                          ? "Đang tải..."
+                          : "Chọn hoặc nhập món ăn"
                       }
-                      onChange={(value) =>
-                        updatePlannedMeal(index, { recipeId: value })
-                      }
+                      onChange={(values) => {
+                        const value = values[values.length - 1];
+                        if (recommendations.some((r) => r.recipeID === value)) {
+                          updatePlannedMeal(index, {
+                            recipeId: value,
+                            customRecipeName: undefined,
+                          });
+                        } else {
+                          updatePlannedMeal(index, {
+                            recipeId: null,
+                            customRecipeName: value,
+                          });
+                        }
+                      }}
                       showSearch
                       optionLabelProp="label"
                       filterOption={(input, option) =>
@@ -700,6 +740,43 @@ const MealPlanNew = () => {
                                   {recipe.total_ingredients})
                                 </div>
                               )}
+                            </div>
+                          </div>
+                        </Select.Option>
+                      ))}
+                      {customRecipes.map((recipe) => (
+                        <Select.Option
+                          key={`custom-${recipe.name}`}
+                          value={recipe.name}
+                          data-search={recipe.name}
+                          label={recipe.name}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                            data-search={recipe.name}
+                          >
+                            <img
+                              src="/images/default.jpg"
+                              alt={recipe.name}
+                              style={{
+                                width: 32,
+                                height: 32,
+                                objectFit: "cover",
+                                borderRadius: 4,
+                                marginRight: 8,
+                              }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 500 }}>
+                                {recipe.name}
+                              </div>
+                              <div style={{ fontSize: 12, color: "#888" }}>
+                                Món tùy chọn
+                              </div>
                             </div>
                           </div>
                         </Select.Option>

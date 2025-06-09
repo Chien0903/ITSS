@@ -450,29 +450,25 @@ const ShoppingListDetail = () => {
       return;
     }
     try {
+      const groupId = Number(localStorage.getItem("selectedGroup"));
       const payload = {
         productName: newFridgeItem.productName,
-        quantity: Number(newFridgeItem.quantity), // chuyển về số
+        quantity: Number(newFridgeItem.quantity),
         unit: newFridgeItem.unit,
         shoppingListItemId: newFridgeItem.shoppingListItemId,
-        expiredDate: expiryDate, // đảm bảo đúng tên trường backend
+        expiredDate: expiryDate,
         location: location,
       };
 
-      console.log("Gửi payload:", payload);
-
-      await api.post("/api/fridge/", payload);
+      await api.post(`/api/fridge/?group_id=${groupId}`, payload);
 
       setIsFridgeModalOpen(false);
       setNewFridgeItem(null);
       setExpiryDate("");
       setLocation("cool");
-    } catch (error) {
-      console.error(
-        "Lỗi khi thêm sản phẩm vào tủ lạnh:",
-        error.response?.data || error.message
-      );
-      //alert("Có lỗi xảy ra khi thêm sản phẩm. Vui lòng thử lại.");
+      alert("Đã thêm sản phẩm vào tủ lạnh thành công!");
+    } catch {
+      alert("Có lỗi xảy ra khi thêm sản phẩm vào tủ lạnh. Vui lòng thử lại!");
     }
   };
 

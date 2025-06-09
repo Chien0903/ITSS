@@ -79,8 +79,9 @@ const AddShoppingList = () => {
       const response = await api.post("/api/shopping-lists/", {
         listName: listInfo.name,
         date: new Date().toISOString().split("T")[0],
-        group: listInfo.group,
+        group: parseInt(listInfo.group),
         type: listInfo.type,
+        user: JSON.parse(localStorage.getItem("user"))?.id,
       });
       return response.data.data;
     } catch (error) {

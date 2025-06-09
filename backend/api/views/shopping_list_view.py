@@ -164,7 +164,13 @@ class PurchasedShoppingStatsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        purchased_items = AddToList.objects.filter(status='purchased', list__user=request.user)
+        group_id = request.query_params.get('group_id')
+        if not group_id:
+            return Response({'message': 'Thiếu group_id'}, status=400)
+        purchased_items = AddToList.objects.filter(
+            status='purchased',
+            list__group_id=group_id
+        )
         total_items = purchased_items.count()
         total_quantity = purchased_items.aggregate(total=Sum('quantity'))['total'] or 0
         # Tính tổng giá tiền: quantity * product.price
@@ -175,7 +181,7 @@ class PurchasedShoppingStatsView(APIView):
                     output_field=FloatField()
                 )
             )
-        )['total'] or 0
+        )['total'] or 0 
 
         return Response({
             'total_items': total_items,
@@ -187,8 +193,14 @@ class PurchasedStatsByCategoryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Lọc các sản phẩm đã mua của user hiện tại
-        purchased_items = AddToList.objects.filter(status='purchased', list__user=request.user)
+        group_id = request.query_params.get('group_id')
+        if not group_id:
+            return Response({'message': 'Thiếu group_id'}, status=400)
+        # Lọc các sản phẩm đã mua của group hiện tại
+        purchased_items = AddToList.objects.filter(
+            status='purchased',
+            list__group_id=group_id
+        )
         # Thống kê tổng số lượng theo từng danh mục
         stats = (
             purchased_items

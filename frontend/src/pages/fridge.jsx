@@ -333,6 +333,7 @@ const Fridge = () => {
 
   const deleteItem = async (id) => {
     try {
+      console.log("Deleting item with ID:", id);
       await api.delete(`/api/fridge/${id}/`);
       fetchFridgeList();
       fetchRecommendations(currentPage);

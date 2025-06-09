@@ -26,14 +26,17 @@ const Statistics = () => {
       try {
         setLoading(true);
         setError(null);
+        const groupId = Number(localStorage.getItem("selectedGroup"));
 
         // Lấy thống kê tủ lạnh
-        const fridgeResponse = await api.get("/api/fridge/");
+        const fridgeResponse = await api.get(
+          `/api/fridge/?group_id=${groupId}`
+        );
         setFridgeStats(fridgeResponse.data.stats);
 
         // Lấy thống kê danh sách mua sắm
         const purchasedStatsResponse = await api.get(
-          "/api/shopping-lists/purchased-shopping-stats/"
+          `/api/shopping-lists/purchased-shopping-stats/?group_id=${groupId}`
         );
         setShoppingStats({
           totalItems: purchasedStatsResponse.data.total_items,
@@ -41,7 +44,9 @@ const Statistics = () => {
           totalPrice: purchasedStatsResponse.data.total_price,
         });
         // Lấy thống kê kế hoạch bữa ăn
-        const mealPlanResponse = await api.get("/api/meal-plans/");
+        const mealPlanResponse = await api.get(
+          `/api/meal-plans/?group_id=${groupId}`
+        );
         setMealPlanStats({
           totalPlans: mealPlanResponse.data.data.length,
           todayPlans: mealPlanResponse.data.data.filter(
@@ -53,7 +58,7 @@ const Statistics = () => {
 
         // Lấy thống kê theo danh mục và tính phần trăm
         const categoryStatsResponse = await api.get(
-          "/api/shopping-lists/purchased-stats-by-category/"
+          `/api/shopping-lists/purchased-stats-by-category/?group_id=${groupId}`
         );
         const rawData = categoryStatsResponse.data;
         const total = rawData.reduce((sum, item) => sum + item.value, 0);

@@ -56,8 +56,8 @@ const Store = () => {
           setProducts(productRes.data);
           setCategories(categoryRes.data);
         }
-      } catch (err) {
-        console.error("Lỗi khi tải dữ liệu:", err);
+      } catch {
+        alert("Có lỗi xảy ra khi tải dữ liệu!");
       } finally {
         setLoading(false);
       }
@@ -69,10 +69,12 @@ const Store = () => {
   const fetchShoppingLists = async () => {
     try {
       setLoadingShoppingLists(true);
-      const response = await api.get("/api/shopping-lists/");
+      const groupId = localStorage.getItem("selectedGroup");
+      const response = await api.get("/api/shopping-lists/", {
+        params: { group_id: groupId },
+      });
       setShoppingLists(response.data);
-    } catch (error) {
-      console.error("Error fetching shopping lists:", error);
+    } catch {
       alert("Có lỗi xảy ra khi tải danh sách mua sắm!");
     } finally {
       setLoadingShoppingLists(false);
@@ -93,9 +95,11 @@ const Store = () => {
     setAddingToCart((prev) => ({ ...prev, [productId]: true }));
 
     try {
+      const groupId = localStorage.getItem("selectedGroup");
       await api.post(`/api/shopping-lists/${listId}/items/`, {
         product: productId,
         quantity: quantity,
+        group_id: groupId,
       });
       alert(
         `Đã thêm ${selectedProductToAdd.productName} vào danh sách mua sắm thành công!`
@@ -103,7 +107,6 @@ const Store = () => {
       setShowShoppingListModal(false);
       setSelectedProductToAdd(null);
     } catch (error) {
-      console.error("Error adding to shopping list:", error);
       if (
         error.response?.status === 400 &&
         error.response?.data?.message?.includes("unique")
@@ -137,8 +140,7 @@ const Store = () => {
       await api.delete(`/api/products/${productId}/`);
       setProducts(products.filter((p) => p.productID !== productId));
       alert("Đã xóa sản phẩm thành công!");
-    } catch (error) {
-      console.error("Error deleting product:", error);
+    } catch {
       alert("Có lỗi xảy ra khi xóa sản phẩm!");
     } finally {
       setDeletingProduct(null);
@@ -159,7 +161,6 @@ const Store = () => {
       });
       if (response.data && Array.isArray(response.data)) {
         const productFrequency = {};
-        // Lấy chi tiết từng shopping list (giới hạn 10 list gần nhất)
         const detailPromises = response.data.slice(0, 10).map(async (list) => {
           try {
             const detailResponse = await api.get(
@@ -179,7 +180,6 @@ const Store = () => {
               (productFrequency[productId] || 0) + 1;
           }
         });
-        // Lấy top 10 productID phổ biến nhất
         const topProductIDs = Object.entries(productFrequency)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 10)
@@ -234,7 +234,6 @@ const Store = () => {
       (a, b) => new Date(a.created_at) - new Date(b.created_at)
     );
   }
-  console.log(products);
 
   const totalPages = Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE);
   const paginatedProducts = sortedProducts.slice(

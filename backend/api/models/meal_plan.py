@@ -16,6 +16,7 @@ class MealPlan(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    
 
     class Meta:
         unique_together = [['plan_name', 'day_of_week', 'mealType', 'group', 'start_date']]
