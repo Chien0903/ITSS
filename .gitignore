@@ -7,9 +7,5 @@ backend/api/views/__pycache__
 backend/backend/__pycache__
 env/
 backend/env
-<<<<<<< HEAD
 backend/api/tests/__pycache__
-=======
-backend/api/management/__pycache__
-backend/api/tests/__pycache__
->>>>>>> main
+backend/api/management/commands/__pycache__
