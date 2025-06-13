@@ -108,12 +108,8 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'smart_market_t7rf',
-        'USER': 'smart_market',
-        'PASSWORD': 'OBRDv7kRHPU0cZMF6mbDwOPVV5RvwtxU',
-        'HOST': 'dpg-d0oognuuk2gs738t7ing-a.oregon-postgres.render.com',
-        'PORT': '5432',  # Cổng mặc định của PostgreSQL
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
