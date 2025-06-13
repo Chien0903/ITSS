@@ -1,4 +1,7 @@
-backend/api/__pycache__
+backend/api/__pycache__/
+*.pyc
+*.pyo
+*.pyd
 backend/api/migrations/__pycache__
 backend/api/models/__pycache__
 backend/api/serializers/__pycache__

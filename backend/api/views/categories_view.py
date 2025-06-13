@@ -6,8 +6,8 @@ from ..models.categories import Categories
 from ..serializers.categories_serializer import CategoriesSerializer
 
 class CategoriesView(APIView):
-    permission_classes = [AllowAny]  # Cho phép truy cập không cần authentication
-    
+    permission_classes = [AllowAny]
+
     def get(self, request):
         categories = Categories.objects.all()
         serializer = CategoriesSerializer(categories, many=True)
@@ -27,8 +27,8 @@ class CategoriesView(APIView):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 class CategoriesDetailView(APIView):
-    permission_classes = [AllowAny]  # Cho phép truy cập không cần authentication
-    
+    permission_classes = [AllowAny]
+
     def get_object(self, pk):
         try:
             return Categories.objects.get(pk=pk)
@@ -69,6 +69,8 @@ class CategoriesDetailView(APIView):
                 'message': 'Không tìm thấy danh mục'
             }, status=status.HTTP_404_NOT_FOUND)
         category.delete()
+        # Thay đổi ở đây: trả về message thay vì status 204
+        # vì status 204 không có body, sẽ gây lỗi nếu client cố đọc message
         return Response({
             'message': 'Danh mục đã được xóa thành công'
-        }, status=status.HTTP_204_NO_CONTENT) 
+        }, status=status.HTTP_200_OK)

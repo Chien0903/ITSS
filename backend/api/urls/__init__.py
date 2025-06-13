@@ -21,6 +21,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('register/', RegisterView.as_view(), name='register'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path("api/change-password/", ChangePasswordView.as_view(), name="change-password"),
     # Password Reset URLs
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
