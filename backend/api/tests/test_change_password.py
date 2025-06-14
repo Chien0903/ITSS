@@ -38,7 +38,7 @@ class TestChangePasswordView:
 
     def test_change_password_wrong_current_password(self, authenticated_client):
         """Kiểm tra khi mật khẩu hiện tại không đúng."""
-        response = authenticated_client.post("/api/change-password", data={
+        response = authenticated_client.post("/api/change-password/", data={
             "current_password": "wrongpassword",
             "new_password": "newpassword456"
         })
@@ -47,7 +47,7 @@ class TestChangePasswordView:
 
     def test_change_password_missing_data(self, authenticated_client):
         """Kiểm tra khi dữ liệu không đầy đủ."""
-        response = authenticated_client.post("/api/change-password", data={
+        response = authenticated_client.post("/api/change-password/", data={
             "current_password": "oldpassword123"
         })
         assert response.status_code == 400
@@ -56,7 +56,7 @@ class TestChangePasswordView:
     def test_change_password_unauthenticated(self):
         """Kiểm tra khi người dùng không đăng nhập."""
         client = APIClient()
-        response = client.post("/api/change-password", data={
+        response = client.post("/api/change-password/", data={
             "current_password": "oldpassword123",
             "new_password": "newpassword456"
         })
