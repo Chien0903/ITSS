@@ -9,6 +9,7 @@ from rest_framework import serializers
 from ..models.user import User
 from ..serializers.user import RegisterSerializer, CustomTokenObtainPairSerializer
 from ..serializers.group import UserSerializer
+from ..models.in_model import In
 
 class UserListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -163,6 +164,9 @@ class UserDetailView(APIView):
                     'success': False,
                     'message': 'Không thể xóa tài khoản của chính mình'
                 }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Xóa membership trước khi xóa user để tránh lỗi liên quan ManyToMany through 'In'
+            In.objects.filter(user=user).delete()
 
             user.delete()
             return Response({

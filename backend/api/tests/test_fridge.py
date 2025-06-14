@@ -1,10 +1,12 @@
 #tests/test_fridge_views.py
 
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APITestCase
 from datetime import date, timedelta
+
+User = get_user_model()
 
 # Import các models của bạn
 from ..models.group import Group
@@ -12,13 +14,14 @@ from ..models.fridge import Fridge
 from ..models.add_to_fridge import AddToFridge
 from ..models.product_catalog import ProductCatalog
 from ..models.categories import Categories
+from ..models.in_model import In
 
 # Hàm trợ giúp để tạo dữ liệu test
 def create_test_data():
     """Tạo dữ liệu test chung cho các test case."""
-    user = User.objects.create_user(username='testuser', password='password123')
-    group = Group.objects.create(name='Test Family')
-    group.members.add(user)
+    user = User.objects.create_user(username='testuser', email='testuser@example.com', password='password123')
+    group = Group.objects.create(groupName='Test Family')
+    In.objects.create(user=user, group=group)
     
     category = Categories.objects.create(categoryName='Thực phẩm tươi sống')
     
@@ -50,7 +53,7 @@ class FridgeNotificationViewTest(APITestCase):
 
     def test_get_expiring_items_notification(self):
         """Kiểm tra lấy danh sách các sản phẩm sắp hết hạn trong vòng 3 ngày."""
-        response = self.client.get(self.url, {'group_id': self.group.id})
+        response = self.client.get(self.url, {'group_id': self.group.groupID})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['total_expiring'], 3) # Chỉ có 3 sản phẩm sắp hết hạn
@@ -73,7 +76,7 @@ class FridgeNotificationViewTest(APITestCase):
 
     def test_get_notification_user_not_in_group(self):
         """Kiểm tra trường hợp user không thuộc nhóm nào."""
-        new_user = User.objects.create_user(username='lonelyuser', password='password')
+        new_user = User.objects.create_user(username='lonelyuser', email='lonely@example.com', password='password')
         self.client.force_authenticate(user=new_user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -90,7 +93,7 @@ class FridgeDetailViewTest(APITestCase):
 
     def test_get_fridge_items_and_stats(self):
         """Kiểm tra lấy danh sách tất cả sản phẩm trong tủ lạnh và thống kê."""
-        response = self.client.get(self.list_create_url, {'group_id': self.group.id})
+        response = self.client.get(self.list_create_url, {'group_id': self.group.groupID})
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['items']), 4) # Có 4 sản phẩm trong tủ lạnh
@@ -105,21 +108,21 @@ class FridgeDetailViewTest(APITestCase):
         """Kiểm tra lấy chi tiết một sản phẩm trong tủ lạnh."""
         item = AddToFridge.objects.first()
         detail_url = reverse('fridge-detail-update-delete', kwargs={'id': item.id})
-        response = self.client.get(detail_url, {'group_id': self.group.id})
+        response = self.client.get(detail_url, {'group_id': self.group.groupID})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['product']['productName'], item.product.productName)
+        self.assertEqual(response.data['product_name'], item.product.productName)
 
     def test_add_new_product_from_catalog(self):
         """Kiểm tra thêm sản phẩm mới vào tủ lạnh (sản phẩm đã có trong catalog)."""
-        new_product = ProductCatalog.objects.create(productName='Phô mai', unit='miếng')
+        new_product = ProductCatalog.objects.create(productName='Phô mai', unit='miếng', shelfLife=30)
         payload = {
             "productName": "Phô mai",
             "product_id": new_product.productID,
             "expiredDate": (date.today() + timedelta(days=20)).isoformat(),
             "quantity": 5,
         }
-        response = self.client.post(self.list_create_url, payload, {'group_id': self.group.id}, format='json')
+        response = self.client.post(self.list_create_url + f"?group_id={self.group.groupID}", payload, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(AddToFridge.objects.count(), 5) # Ban đầu có 4, thêm 1 là 5
@@ -134,7 +137,7 @@ class FridgeDetailViewTest(APITestCase):
             "unit": "kg",
             "category_id": category.categoryID
         }
-        response = self.client.post(self.list_create_url, payload, {'group_id': self.group.id}, format='json')
+        response = self.client.post(self.list_create_url + f"?group_id={self.group.groupID}", payload, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertTrue(ProductCatalog.objects.filter(productName='Cá hồi', isCustom=True).exists())
@@ -148,7 +151,7 @@ class FridgeDetailViewTest(APITestCase):
             "quantity": 1,
             "unit": "gói"
         }
-        response = self.client.post(self.list_create_url, payload, {'group_id': self.group.id}, format='json')
+        response = self.client.post(self.list_create_url + f"?group_id={self.group.groupID}", payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, "Ngày hết hạn phải từ hôm nay trở đi")
     
@@ -161,7 +164,7 @@ class FridgeDetailViewTest(APITestCase):
             "expiredDate": (date.today() + timedelta(days=10)).isoformat(),
             "quantity": 1,
         }
-        response = self.client.post(self.list_create_url, payload, {'group_id': self.group.id}, format='json')
+        response = self.client.post(self.list_create_url + f"?group_id={self.group.groupID}", payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data, "Sản phẩm này đã có trong tủ lạnh của bạn.")
 
@@ -171,13 +174,13 @@ class FridgeDetailViewTest(APITestCase):
         update_url = reverse('fridge-detail-update-delete', kwargs={'id': item.id})
         payload = {
             "quantity": 20,
-            "location": "cánh cửa"
+            "location": "freeze"
         }
-        response = self.client.patch(update_url, payload, {'group_id': self.group.id}, format='json')
+        response = self.client.patch(update_url + f"?group_id={self.group.groupID}", payload, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['quantity'], 20)
-        self.assertEqual(response.data['location'], 'cánh cửa')
+        self.assertEqual(response.data['location'], 'freeze')
 
         item.refresh_from_db()
         self.assertEqual(item.quantity, 20)
@@ -186,7 +189,7 @@ class FridgeDetailViewTest(APITestCase):
         """Kiểm tra xóa một sản phẩm khỏi tủ lạnh."""
         item = AddToFridge.objects.first()
         delete_url = reverse('fridge-detail-update-delete', kwargs={'id': item.id})
-        response = self.client.delete(delete_url, {'group_id': self.group.id})
+        response = self.client.delete(delete_url + f"?group_id={self.group.groupID}")
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(AddToFridge.objects.count(), 3) # Ban đầu có 4, xóa 1 còn 3

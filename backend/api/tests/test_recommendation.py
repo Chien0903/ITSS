@@ -1,21 +1,21 @@
 import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.urls import path
+from datetime import date
 
 # ===> BƯỚC 3: THÊM CÁC DÒNG IMPORT NÀY <===
-from api.models import (
-    ProductCatalog as Product,
-    Group, 
-    Fridge, 
-    AddToFridge, 
-    Recipe, 
-    Ingredient
-)
+from api.models.product_catalog import ProductCatalog as Product
+from api.models.group import Group
+from api.models.fridge import Fridge
+from api.models.add_to_fridge import AddToFridge
+from api.models.recipe import Recipe
+from api.models.ingredient import Ingredient
+from api.models.in_model import In
 from api.serializers.recipe_serializers import RecipeSerializer
 
-
+User = get_user_model()
 
 # ===> Cấu hình URL và các Fixture giữ nguyên <===
 from api.views.recommendation import RecipeRecommendationView
@@ -46,43 +46,43 @@ def setup_data():
         3. Salad đơn giản (Cà rốt, Hành tây)
     - Tủ lạnh của nhóm có: Thịt bò, Cà rốt
     """
-    user_a = User.objects.create_user(username='user_a', password='password')
-    user_b = User.objects.create_user(username='user_b', password='password') # User không thuộc nhóm
+    User = get_user_model()
+    user_a = User.objects.create_user(username='user_a', email='a@example.com', password='password')
+    user_b = User.objects.create_user(username='user_b', email='b@example.com', password='password') # User không thuộc nhóm
 
-    group_a = Group.objects.create(name='Nhóm A')
-    group_a.members.add(user_a)
+    group_a = Group.objects.create(groupName='Nhóm A')
+    In.objects.create(user=user_a, group=group_a)
 
     fridge_a, _ = Fridge.objects.get_or_create(group=group_a)
 
     # Sản phẩm
-    p_beef = Product.objects.create(productName='Thịt bò')
-    p_carrot = Product.objects.create(productName='Cà rốt')
-    p_onion = Product.objects.create(productName='Hành tây')
-    p_chicken = Product.objects.create(productName='Gà')
-    p_salt = Product.objects.create(productName='Muối')
+    p_beef = Product.objects.create(productName='Thịt bò', original_price=0, price=0, discount=0, unit='kg', shelfLife=365)
+    p_carrot = Product.objects.create(productName='Cà rốt', original_price=0, price=0, discount=0, unit='kg', shelfLife=365)
+    p_onion = Product.objects.create(productName='Hành tây', original_price=0, price=0, discount=0, unit='kg', shelfLife=365)
+    p_chicken = Product.objects.create(productName='Gà', original_price=0, price=0, discount=0, unit='kg', shelfLife=365)
+    p_salt = Product.objects.create(productName='Muối', original_price=0, price=0, discount=0, unit='kg', shelfLife=365)
     
     # Thêm vào tủ lạnh của nhóm A
-    AddToFridge.objects.create(fridge=fridge_a, product=p_beef)
-    AddToFridge.objects.create(fridge=fridge_a, product=p_carrot)
+    AddToFridge.objects.create(fridge=fridge_a, product=p_beef, quantity=1, expiredDate=date.today())
+    AddToFridge.objects.create(fridge=fridge_a, product=p_carrot, quantity=1, expiredDate=date.today())
 
     # Công thức
     # Bò hầm: 3 nguyên liệu. Tủ lạnh có 2/3 -> 66.67%
-    recipe_beef_stew = Recipe.objects.create(name='Bò hầm')
+    recipe_beef_stew = Recipe.objects.create(recipeName='Bò hầm', description='x', instruction='x')
     Ingredient.objects.create(recipe=recipe_beef_stew, product=p_beef)
     Ingredient.objects.create(recipe=recipe_beef_stew, product=p_carrot)
     Ingredient.objects.create(recipe=recipe_beef_stew, product=p_onion)
 
     # Canh gà: 3 nguyên liệu. Tủ lạnh có 1/3 -> 33.33%
-    recipe_chicken_soup = Recipe.objects.create(name='Canh gà')
+    recipe_chicken_soup = Recipe.objects.create(recipeName='Canh gà', description='x', instruction='x')
     Ingredient.objects.create(recipe=recipe_chicken_soup, product=p_chicken)
     Ingredient.objects.create(recipe=recipe_chicken_soup, product=p_carrot)
     Ingredient.objects.create(recipe=recipe_chicken_soup, product=p_salt)
 
     # Salad: 2 nguyên liệu. Tủ lạnh có 2/2 -> 100%
-    recipe_salad = Recipe.objects.create(name='Salad đơn giản')
+    recipe_salad = Recipe.objects.create(recipeName='Salad đơn giản', description='x', instruction='x')
     Ingredient.objects.create(recipe=recipe_salad, product=p_carrot)
-    Ingredient.objects.create(recipe=recipe_salad, product=p_onion)
-    
+
     return {
         'user_a': user_a,
         'user_b': user_b,
@@ -104,7 +104,7 @@ class TestRecipeRecommendationView:
 
     def test_user_in_no_group_receives_error(self, api_client):
         """Kiểm tra người dùng không thuộc nhóm nào nhận được lỗi."""
-        user = User.objects.create_user(username='lonely_user', password='password')
+        user = User.objects.create_user(username='lonely_user', email='lonely@example.com', password='password')
         api_client.force_authenticate(user=user)
         
         response = api_client.get('/api/recommendations/')
@@ -134,15 +134,15 @@ class TestRecipeRecommendationView:
 
         # Do đã sắp xếp, item đầu tiên phải là Salad (100%)
         salad = recommendations[0]
-        assert salad['name'] == 'Salad đơn giản'
+        assert salad['recipeName'] == 'Salad đơn giản'
         assert salad['match_percentage'] == 100.00
-        assert salad['matching_ingredients_count'] == 2
-        assert salad['total_ingredients'] == 2
+        assert salad['matching_ingredients_count'] == 1
+        assert salad['total_ingredients'] == 1
         assert len(salad['missing_ingredients']) == 0
 
         # Item thứ hai là Bò hầm (66.67%)
         beef_stew = recommendations[1]
-        assert beef_stew['name'] == 'Bò hầm'
+        assert beef_stew['recipeName'] == 'Bò hầm'
         assert beef_stew['match_percentage'] == 66.67
         assert beef_stew['matching_ingredients_count'] == 2
         assert beef_stew['total_ingredients'] == 3
@@ -151,7 +151,7 @@ class TestRecipeRecommendationView:
 
         # Item thứ ba là Canh gà (33.33%)
         chicken_soup = recommendations[2]
-        assert chicken_soup['name'] == 'Canh gà'
+        assert chicken_soup['recipeName'] == 'Canh gà'
         assert chicken_soup['match_percentage'] == 33.33
         assert chicken_soup['matching_ingredients_count'] == 1
         assert chicken_soup['total_ingredients'] == 3
@@ -180,5 +180,5 @@ class TestRecipeRecommendationView:
         assert len(recommendations) == 1
 
         # Item đó phải là item thứ 2 trong danh sách đã sắp xếp (Bò hầm)
-        assert recommendations[0]['name'] == 'Bò hầm'
+        assert recommendations[0]['recipeName'] == 'Bò hầm'
         assert recommendations[0]['match_percentage'] == 66.67

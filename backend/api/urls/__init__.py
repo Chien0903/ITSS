@@ -29,6 +29,7 @@ urlpatterns = [
     path('products/', include('api.urls.products')),
     # Category URLs
     path('categories/', CategoriesView.as_view(), name='categories'),
+    path('categories/<int:pk>/', CategoriesDetailView.as_view(), name='category-detail'),
     # Group URLs
     path('groups/', include('api.urls.group')),
     path('users/', UserListView.as_view(), name='user-list'),

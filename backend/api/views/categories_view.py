@@ -62,6 +62,24 @@ class CategoriesDetailView(APIView):
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    def patch(self, request, pk):
+        category = self.get_object(pk)
+        if not category:
+            return Response({
+                'message': 'Không tìm thấy danh mục'
+            }, status=status.HTTP_404_NOT_FOUND)
+        serializer = CategoriesSerializer(category, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'message': 'Danh mục đã được cập nhật thành công',
+                'data': serializer.data
+            })
+        return Response({
+            'message': 'Có lỗi xảy ra khi cập nhật danh mục',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     def delete(self, request, pk):
         category = self.get_object(pk)
         if not category:

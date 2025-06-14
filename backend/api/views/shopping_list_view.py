@@ -143,6 +143,10 @@ class AddToListDetailView(APIView):
             'message': 'Xóa sản phẩm thành công'
         }, status=status.HTTP_204_NO_CONTENT)
 
+    # Hỗ trợ PATCH để phục vụ partial update (ví dụ chỉ cập nhật quantity)
+    def patch(self, request, list_id, item_id):
+        return self.put(request, list_id, item_id)
+
 class ToggleItemStatusView(APIView):
     permission_classes = [IsAuthenticated]
     

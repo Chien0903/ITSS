@@ -49,8 +49,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if not user.check_password(password):
             raise serializers.ValidationError({'password': 'Mật khẩu không đúng.'})
 
-        # Trick cho SimpleJWT: truyền username = email
-        data = super().validate({'username': email, 'password': password})
+        # Gọi validate của SimpleJWT với attrs gốc (đã chứa email, password)
+        data = super().validate(attrs)
         return data
 
 
