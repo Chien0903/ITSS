@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# Dependency directories
+backend/api/__pycache__/
+*.pyc
+*.pyo
+*.pyd
