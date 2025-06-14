@@ -1,7 +1,5 @@
-from django.urls import path
+from django.urls import path, include 
 from ..views.user import (
-    RegisterView,
-    CustomTokenObtainPairView,
     UserListView,
     UserMeView,
     UserUpdateView,
