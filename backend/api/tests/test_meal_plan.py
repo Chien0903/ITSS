@@ -39,7 +39,10 @@ class MealPlanAPITests(APITestCase):
             "group": self.group.groupID,
             "user": self.user.id,
         }
+        print("INPUT (Create Meal Plan):", payload)
         response = self.client.post(self.base_url, payload, format="json")
+        print("OUTPUT (Create Meal Plan):", response.status_code, response.data)
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(MealPlan.objects.count(), 1)
         plan = MealPlan.objects.first()
@@ -51,7 +54,11 @@ class MealPlanAPITests(APITestCase):
         MealPlan.objects.create(plan_name="A", start_date=date.today(), mealType="breakfast", day_of_week=0, group=self.group, user=self.user)
         MealPlan.objects.create(plan_name="B", start_date=date.today(), mealType="lunch", day_of_week=0, group=other_group, user=self.user)
 
+        url = f"{self.base_url}?group_id={self.group.groupID}"
+        print("INPUT (List Meal Plans by Group): GET", url)
         response = self.client.get(self.base_url, {"group_id": self.group.groupID})
+        print("OUTPUT (List Meal Plans):", response.status_code, response.data)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         returned_ids = {p["plan_name"] for p in response.data["data"]}
         self.assertIn("A", returned_ids)
@@ -63,19 +70,25 @@ class MealPlanAPITests(APITestCase):
         detail_url = reverse("meal-plan-detail", kwargs={"pk": plan.planID})
 
         # GET
+        print("INPUT (Get Meal Plan Detail): GET", detail_url)
         res = self.client.get(detail_url)
+        print("OUTPUT (Get Meal Plan):", res.status_code, res.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["data"]["plan_name"], "Plan D")
 
         # PUT update description
         update_payload = {"description": "Updated"}
+        print("INPUT (Update Meal Plan): PUT", detail_url, update_payload)
         res = self.client.put(detail_url, update_payload, format="json")
+        print("OUTPUT (Update Meal Plan):", res.status_code, res.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         plan.refresh_from_db()
         self.assertEqual(plan.description, "Updated")
 
         # DELETE
+        print("INPUT (Delete Meal Plan): DELETE", detail_url)
         res = self.client.delete(detail_url)
+        print("OUTPUT (Delete Meal Plan):", res.status_code)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertFalse(MealPlan.objects.filter(planID=plan.planID).exists())
 
@@ -84,11 +97,17 @@ class MealPlanAPITests(APITestCase):
         plan = MealPlan.objects.create(plan_name="Plan R", start_date=date.today(), mealType="breakfast", day_of_week=0, group=self.group, user=self.user)
         recipes_url = reverse("meal-plan-recipes", kwargs={"pk": plan.planID})
         payload = {"recipe_id": self.recipe.recipeID}
+
+        print("INPUT (Add Recipe to Meal Plan): POST", recipes_url, payload)
         res = self.client.post(recipes_url, payload, format="json")
+        print("OUTPUT (Add Recipe):", res.status_code, res.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertTrue(Have.objects.filter(plan=plan, recipe=self.recipe).exists())
 
         # Duplicate add
+        print("INPUT (Duplicate Add Recipe): POST", recipes_url, payload)
         res_dup = self.client.post(recipes_url, payload, format="json")
+        print("OUTPUT (Duplicate Add Recipe):", res_dup.status_code, res_dup.data)
         self.assertEqual(res_dup.status_code, status.HTTP_200_OK)
         self.assertFalse(res_dup.data.get("success", True))
+        
