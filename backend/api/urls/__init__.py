@@ -1,6 +1,6 @@
 from django.urls import path, include
 from ..views.categories_view import CategoriesView, CategoriesDetailView
-from ..views.user import UserListView, UserMeView, UserUpdateView
+from ..views.user import UserListView, UserMeView, UserUpdateView, UserDetailView, UserStatusView, UserRoleView
 from ..views.auth import RegisterView, CustomTokenObtainPairView
 from django.conf import settings
 from django.conf.urls.static import static
@@ -34,6 +34,10 @@ urlpatterns = [
     # User profile APIs
     path('user/me/', UserMeView.as_view(), name='user-me'),
     path('user/update/', UserUpdateView.as_view(), name='user-update'),
+    # User management APIs
+    path('users/<int:user_id>/', UserDetailView.as_view(), name='user-detail'),
+    path('users/<int:user_id>/status/', UserStatusView.as_view(), name='user-status'),
+    path('users/<int:user_id>/role/', UserRoleView.as_view(), name='user-role'),
     # Shopping List URLs
     path('shopping-lists/', include('api.urls.shopping_list_urls')),
     #Fridge

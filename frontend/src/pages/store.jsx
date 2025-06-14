@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { ShoppingCart, Plus, Eye, Edit, Trash2, List } from "lucide-react";
-import api from "../api";
+import api from "../config/api";
 import { Link, useNavigate } from "react-router-dom";
 
 const Store = () => {

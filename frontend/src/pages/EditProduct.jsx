@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Save, Upload, X } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import api from "../api";
+import api from "../config/api";
 
 const EditProduct = () => {
   const navigate = useNavigate();

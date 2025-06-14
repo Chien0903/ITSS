@@ -25,7 +25,7 @@ import {
   DeleteOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
-import api from "../api";
+import api from "../config/api";
 
 const { Title, Text, Paragraph } = Typography;
 

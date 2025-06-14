@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../../api";
-import { ACCESS_TOKEN } from "../../constants";
+import api from "../../config/api";
+import { ACCESS_TOKEN } from "../../config/constants";
 import NotificationBell from "../NotificationBell";
 
 const Header = () => {

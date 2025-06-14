@@ -10,7 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, Link } from "react-router-dom";
 import * as z from "zod";
-import api from "../api";
+import api from "../config/api";
 
 const { Title, Text } = Typography;
 

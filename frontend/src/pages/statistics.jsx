@@ -11,7 +11,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import api from "../api";
+import api from "../config/api";
 
 const Statistics = () => {
   const [fridgeStats, setFridgeStats] = useState(null);

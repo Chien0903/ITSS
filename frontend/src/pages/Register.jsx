@@ -19,8 +19,8 @@ import {
   TeamOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api";
-import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
+import api from "../config/api";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../config/constants";
 
 const { Title, Text } = Typography;
 
@@ -57,12 +57,51 @@ const Register = () => {
       }
     } catch (err) {
       console.error("Registration error:", err);
-      message.error({
-        content:
-          err.response?.data?.message ||
-          "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.",
-        duration: 4,
-      });
+      console.log(
+        "Error response data:",
+        JSON.stringify(err.response?.data, null, 2)
+      ); // Debug log
+      console.log("Error status:", err.response?.status); // Debug status
+
+      // Kiểm tra các trường hợp lỗi email đã tồn tại
+      const errorData = err.response?.data;
+      const errorMessage = errorData?.message || errorData?.error || "";
+      const emailErrors = errorData?.errors?.email || errorData?.email || [];
+
+      // Kiểm tra lỗi email đã tồn tại với nhiều format khác nhau
+      if (
+        errorMessage.toLowerCase().includes("already exists") ||
+        errorMessage.toLowerCase().includes("đã tồn tại") ||
+        errorMessage.toLowerCase().includes("already registered") ||
+        errorMessage.toLowerCase().includes("email already") ||
+        (Array.isArray(emailErrors) &&
+          emailErrors.some(
+            (msg) =>
+              msg.toLowerCase().includes("already") ||
+              msg.toLowerCase().includes("tồn tại") ||
+              msg.toLowerCase().includes("registered")
+          )) ||
+        err.response?.status === 409 || // Conflict status code
+        err.response?.status === 400 // Bad Request - có thể là email đã tồn tại
+      ) {
+        message.error({
+          content: "Email này đã được sử dụng. Vui lòng sử dụng email khác.",
+          duration: 4,
+        });
+      } else if (Array.isArray(emailErrors) && emailErrors.length > 0) {
+        // Hiển thị lỗi email cụ thể
+        message.error({
+          content: emailErrors[0],
+          duration: 4,
+        });
+      } else {
+        // Hiển thị lỗi chung
+        message.error({
+          content:
+            errorMessage || "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại.",
+          duration: 4,
+        });
+      }
     } finally {
       setLoading(false);
     }

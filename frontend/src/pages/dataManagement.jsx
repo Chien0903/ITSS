@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button, Input, Modal, Form, Table, Tag, message } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import api from "../api";
+import api from "../config/api";
 
 const DataManagement = () => {
   const [categories, setCategories] = useState([]);

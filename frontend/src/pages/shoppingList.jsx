@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, ShoppingCart, List } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import api from "../api";
+import api from "../config/api";
 
 const ShoppingList = () => {
   const navigate = useNavigate();

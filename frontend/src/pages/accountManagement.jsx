@@ -12,7 +12,7 @@ import {
   Calendar,
   Filter,
 } from "lucide-react";
-import api from "../api";
+import api from "../config/api";
 
 const AccountManagement = () => {
   const [users, setUsers] = useState([]);

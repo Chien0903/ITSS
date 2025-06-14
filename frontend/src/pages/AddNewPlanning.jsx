@@ -20,7 +20,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import dayjs from "dayjs";
-import api from "../api";
+import api from "../config/api";
 
 const { Title, Text } = Typography;
 

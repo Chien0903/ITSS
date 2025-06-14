@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Bell, X, AlertTriangle, Clock, Calendar } from "lucide-react";
-import api from "../api";
+import api from "../config/api";
 import { setupNotificationAutoRefresh } from "../utils/notificationUtils";
 
 // Export utility function để backwards compatibility

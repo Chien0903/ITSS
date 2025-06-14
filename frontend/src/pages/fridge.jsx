@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import api from "../api";
+import api from "../config/api";
 import { triggerNotificationRefreshWithDelay } from "../utils/notificationUtils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";

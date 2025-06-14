@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Save, Upload, X } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import api from "../api";
+import api from "../config/api";
 
 const Recipes = () => {
   const location = useLocation();

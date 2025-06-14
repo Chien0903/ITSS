@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Plus, Save, Pencil, CalendarPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import api from "../api";
+import api from "../config/api";
 
 const days = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ nhật"];
 const mealTimes = ["Sáng", "Trưa", "Tối"];
